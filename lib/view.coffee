@@ -22,7 +22,8 @@ class View extends SelectListView
 
   populateProjectList: ->
     projectHome = atom.config.get('project-folder.projectHome')
-    dirs = fs.listSync(projectHome).filter (path) -> fs.isDirectorySync(path)
+    dirs = fs.listSync(projectHome).filter (path) ->
+      fs.isDirectorySync(path)
     @setItems(dirs)
 
   populateLoadedProjectList: ->

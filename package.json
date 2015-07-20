@@ -5,8 +5,10 @@
   "description": "Quickly add/remove project folder",
   "keywords": [],
   "activationCommands": {
-    "atom-workspace": "project-folder:add",
-    "atom-workspace": "project-folder:remove"
+    "atom-workspace": [
+      "project-folder:add",
+      "project-folder:remove"
+    ]
   },
   "repository": "https://github.com/t9md/atom-project-folder",
   "license": "MIT",
