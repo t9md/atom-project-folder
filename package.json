@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "atom-space-pen-views": "^2.0.5",
-    "fs-plus": "^2.8.1"
+    "fs-plus": "^2.8.1",
+    "fuzzaldrin": "^2.1.0"
   }
 }

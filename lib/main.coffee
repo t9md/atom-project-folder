@@ -1,10 +1,13 @@
 {CompositeDisposable} = require 'atom'
 
 config =
-  projectHome:
+  projectRootDirectories:
     order: 1
-    type: 'string'
-    default: atom.config.get('core.projectHome')
+    type: 'array'
+    items:
+      type: 'string'
+    default: [atom.config.get('core.projectHome')]
+    description: 'Comma separated list of directries to search project dir. e.g `~/.atom/packages, ~/github`'
 
 module.exports =
   config: config
