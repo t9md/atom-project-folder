@@ -8,6 +8,11 @@ config =
       type: 'string'
     default: [atom.config.get('core.projectHome')]
     description: 'Comma separated list of directries to search project dir. e.g `~/.atom/packages, ~/github`'
+  hideLoadedFolderFromAddList:
+    order: 2
+    type: 'boolean'
+    default: true
+    description: 'Hide already added folders from list when adding.'
 
 module.exports =
   config: config

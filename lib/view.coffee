@@ -3,7 +3,6 @@ fs = require 'fs-plus'
 path = require 'path'
 {match} = require 'fuzzaldrin'
 
-
 module.exports =
 class View extends SelectListView
   # Copied from symbols-view's SymbolsView class
@@ -30,6 +29,11 @@ class View extends SelectListView
   initialize: ->
     super
     @addClass('project-folder')
+    atom.commands.add @element,
+      'project-folder:replace':              => @replace()
+      'project-folder:switch-action':        => @switchAction()
+      'project-folder:confirm-and-continue': => @confirmAndContinue()
+
     @panel ?= atom.workspace.addModalPanel(item: this, visible: false)
     this
 
@@ -41,36 +45,67 @@ class View extends SelectListView
         @div class: 'primary-line', => View.highlightMatches(this, basename, matches)
         @div item, class: 'secondary-line'
 
+  getItems: ->
+    loadedPaths = atom.project.getPaths()
+    if @action is 'remove'
+      loadedPaths
+    else if @action is 'add'
+      hideLoadedFolder = atom.config.get('project-folder.hideLoadedFolderFromAddList')
+
+      dirs = []
+      for dir in atom.config.get('project-folder.projectRootDirectories')
+        for _path in fs.listSync(fs.normalize(dir)) when fs.isDirectorySync(_path)
+          continue if hideLoadedFolder and (_path in loadedPaths)
+          dirs.push _path
+      dirs
+
+  showItems: ->
+    @setItems @getItems()
+
+  populateList: ->
+    super
+    @removeClass 'add remove'
+    @addClass @action
+
+  start: (@action) ->
+    @storeFocusedElement()
+    @showItems()
+    @panel.show()
+    @focusFilterEditor()
+
+  confirmAndContinue: ->
+    selectedItem = @getSelectedItem()
+    this[@action](selectedItem)
+
+    selectedItemView = @getSelectedItemView()
+    @selectNextItemView()
+    selectedItemView.remove()
+    @items = (item for item in @items when item isnt selectedItem)
+
   confirmed: (item) ->
-    if @action is 'add'
-      atom.project.addPath(item)
-    else if @action is 'remove'
-      atom.project.removePath(item)
+    this[@action] item
     @cancel()
-
-  populateProjectList: ->
-    projectRootDirectories = atom.config.get('project-folder.projectRootDirectories')
-    dirs = []
-    for dir in projectRootDirectories
-      for _path in fs.listSync(fs.normalize(dir)) when fs.isDirectorySync(_path)
-        dirs.push _path
-    @setItems(dirs)
-
-  populateLoadedProjectList: ->
-    dirs = atom.project.getDirectories().map (dir) ->
-      dir.path
-    @setItems(dirs)
 
   cancelled: ->
     @action = null
     @panel.hide()
 
-  start: (@action) ->
-    @storeFocusedElement()
+  replace: ->
+    @removeAll()
+    @add @getSelectedItem()
+    @cancel()
 
-    switch @action
-      when 'add'    then @populateProjectList()
-      when 'remove' then @populateLoadedProjectList()
+  switchAction: ->
+    @action = if @action is 'add' then 'remove' else 'add'
+    @showItems()
 
-    @panel.show()
-    @focusFilterEditor()
+  # Utility
+  add: (_path) ->
+    atom.project.addPath _path
+
+  remove: (_path) ->
+    atom.project.removePath _path
+
+  removeAll: ->
+    for _path in atom.project.getPaths()
+      @remove _path
