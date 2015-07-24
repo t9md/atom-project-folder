@@ -55,17 +55,20 @@ class View extends SelectListView
       loadedPaths
     else if @action is 'add'
       hideLoadedFolder = atom.config.get('project-folder.hideLoadedFolderFromAddList')
+      homeDirectory    = fs.getHomeDirectory()
 
-      dirs = []
-      for dir in atom.config.get('project-folder.projectRootDirectories')
-        for _path in fs.listSync(fs.normalize(dir)) when fs.isDirectorySync(_path)
-          continue if hideLoadedFolder and (_path in loadedPaths)
-          dirs.push _path
+      dirs = _.uniq @getNormalDirectories().concat(@getGitDirectories())
+      if hideLoadedFolder
+        dirs = _.reject dirs, (_path) -> _path in loadedPaths
+      dirs
 
-      homeDirectory = fs.getHomeDirectory()
-      dirs = (dirs.concat @getGitDirectories()).map (dir) ->
-        dir.replace homeDirectory, '~'
-      _.uniq dirs
+  getNormalDirectories: ->
+    dirs = []
+    for dir in atom.config.get('project-folder.projectRootDirectories')
+      dir = fs.normalize dir
+      for _path in fs.listSync(dir) when fs.isDirectorySync(_path)
+        dirs.push _path
+    dirs
 
   getGitDirectories: ->
     gitProjectDirectories = atom.config.get('project-folder.gitProjectDirectories')
