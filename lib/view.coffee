@@ -1,6 +1,7 @@
 {SelectListView, $$} = require 'atom-space-pen-views'
 fs = require 'fs-plus'
 path = require 'path'
+_ = require 'underscore-plus'
 {match} = require 'fuzzaldrin'
 
 module.exports =
@@ -57,7 +58,30 @@ class View extends SelectListView
         for _path in fs.listSync(fs.normalize(dir)) when fs.isDirectorySync(_path)
           continue if hideLoadedFolder and (_path in loadedPaths)
           dirs.push _path
-      dirs
+      _.uniq (dirs.concat @getGitDirectories())
+
+  getGitDirectories: ->
+    gitProjectDirectories = atom.config.get('project-folder.gitProjectDirectories')
+    gitProjectDirectories = gitProjectDirectories.map (dir) -> fs.normalize(dir)
+    gitProjectDirectories = gitProjectDirectories.filter (dir) ->
+      fs.isDirectorySync(dir)
+
+    maxDepth = atom.config.get('project-folder.gitProjectSearchMaxDepth')
+    dirs = []
+    for dir in gitProjectDirectories
+      baseDepth = @getPathDepth(dir)
+      fs.traverseTreeSync dir, (->), (_path) =>
+        return false if (@getPathDepth(_path) - baseDepth) > maxDepth
+        if @isGitRepository(_path)
+          dirs.push _path
+        true
+    dirs
+
+  getPathDepth: (_path) ->
+    _path.split(path.sep).length
+
+  isGitRepository: (_path) ->
+    fs.isDirectorySync path.join(_path,'.git')
 
   showItems: ->
     @setItems @getItems()
