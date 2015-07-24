@@ -17,6 +17,7 @@ This package enables you to quickly do above actions and provide extra command t
 * Replace all project folders with selected item.
 * Hide already loaded folders from select list when adding.
 * Continuously adding, removing without closing select list.
+* Find Git project recursively from specified directory.
 
 # Command
 

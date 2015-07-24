@@ -1,3 +1,6 @@
+## 0.1.3 - [PRE] Find Git project recursively
+- New config `gitProjectDirectories` and `gitProjectSearchMaxDepth`.
+
 ## 0.1.2 - Greatly improved.
 - replace, confirm-and-continue, switch-action introduced.
 - Now style change on action switched.
