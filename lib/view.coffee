@@ -6,26 +6,26 @@ _ = require 'underscore-plus'
 
 module.exports =
 class View extends SelectListView
-  # Copied from symbols-view's SymbolsView class
-  @highlightMatches: (context, name, matches, offsetIndex=0) ->
+  # Copied from FuzzzyFinder's and modified a little.
+  @highlightMatches: (context, path, matches, offsetIndex=0) ->
     lastIndex = 0
     matchedChars = [] # Build up a set of matched chars to be more semantic
 
     for matchIndex in matches
       matchIndex -= offsetIndex
-      continue if matchIndex < 0 # If marking up the basename, omit name matches
-      unmatched = name.substring(lastIndex, matchIndex)
+      continue if matchIndex < 0 # If marking up the basename, omit path matches
+      unmatched = path.substring(lastIndex, matchIndex)
       if unmatched
         context.span matchedChars.join(''), class: 'character-match' if matchedChars.length
         matchedChars = []
         context.text unmatched
-      matchedChars.push(name[matchIndex])
+      matchedChars.push(path[matchIndex])
       lastIndex = matchIndex + 1
 
     context.span matchedChars.join(''), class: 'character-match' if matchedChars.length
 
     # Remaining characters are plain text
-    context.text name.substring(lastIndex)
+    context.text path.substring(lastIndex)
 
   initialize: ->
     super
@@ -39,12 +39,15 @@ class View extends SelectListView
     this
 
   viewForItem: (item) ->
+    matches  = match(item, @getFilterQuery())
     basename = path.basename(item)
-    matches = match(basename, @getFilterQuery())
     $$ ->
+      baseOffset = item.length - basename.length
       @li class: 'two-lines', =>
-        @div class: 'primary-line', => View.highlightMatches(this, basename, matches)
-        @div item, class: 'secondary-line'
+        @div class: "primary-line file icon icon-repo", 'data-name': basename, 'data-path': item, =>
+          View.highlightMatches(this, basename, matches, baseOffset)
+        @div class: 'secondary-line path no-icon', =>
+          View.highlightMatches(this, item, matches)
 
   getItems: ->
     loadedPaths = atom.project.getPaths()
