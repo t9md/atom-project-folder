@@ -71,10 +71,11 @@ class View extends SelectListView
     for dir in gitProjectDirectories
       baseDepth = @getPathDepth(dir)
       fs.traverseTreeSync dir, (->), (_path) =>
-        return false if (@getPathDepth(_path) - baseDepth) > maxDepth
-        if @isGitRepository(_path)
-          dirs.push _path
-        true
+        if (@getPathDepth(_path) - baseDepth) > maxDepth
+          false
+        else
+          dirs.push _path if @isGitRepository(_path)
+          true
     dirs
 
   getPathDepth: (_path) ->
