@@ -1,3 +1,10 @@
+## 0.1.6 - FIX
+- Replace home directory to `~` wasn'nt implemented on delete list.
+- Refactoring.
+
+## 0.1.5 - FIX
+- Loaded folder not hidden for Git directory.
+
 ## 0.1.4 - Improve
 - Replace home directory to `~`.
 - New gif on README.md

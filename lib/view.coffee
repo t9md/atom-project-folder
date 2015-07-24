@@ -31,8 +31,8 @@ class View extends SelectListView
     super
     @addClass('project-folder')
     atom.commands.add @element,
-      'project-folder:replace':              => @replace()
-      'project-folder:switch-action':        => @switchAction()
+      'project-folder:replace': => @replace()
+      'project-folder:switch-action': => @switchAction()
       'project-folder:confirm-and-continue': => @confirmAndContinue()
 
     @panel ?= atom.workspace.addModalPanel(item: this, visible: false)
@@ -51,16 +51,17 @@ class View extends SelectListView
 
   getItems: ->
     loadedPaths = atom.project.getPaths()
-    if @action is 'remove'
-      loadedPaths
-    else if @action is 'add'
-      hideLoadedFolder = atom.config.get('project-folder.hideLoadedFolderFromAddList')
-      homeDirectory    = fs.getHomeDirectory()
+    switch @action
+      when 'remove'
+        dirs = loadedPaths
+      when 'add'
+        dirs = _.uniq @getNormalDirectories().concat(@getGitDirectories())
+        if atom.config.get('project-folder.hideLoadedFolderFromAddList')
+          dirs = _.reject dirs, (_path) ->
+            _path in loadedPaths
 
-      dirs = _.uniq @getNormalDirectories().concat(@getGitDirectories())
-      if hideLoadedFolder
-        dirs = _.reject dirs, (_path) -> _path in loadedPaths
-      dirs
+    dirs.map (dir) ->
+      dir.replace fs.getHomeDirectory(), '~'
 
   getNormalDirectories: ->
     dirs = []
@@ -71,14 +72,12 @@ class View extends SelectListView
     dirs
 
   getGitDirectories: ->
-    gitProjectDirectories = atom.config.get('project-folder.gitProjectDirectories')
-    gitProjectDirectories = gitProjectDirectories.map (dir) -> fs.normalize(dir)
-    gitProjectDirectories = gitProjectDirectories.filter (dir) ->
-      fs.isDirectorySync(dir)
-
     maxDepth = atom.config.get('project-folder.gitProjectSearchMaxDepth')
+
     dirs = []
-    for dir in gitProjectDirectories
+    for dir in atom.config.get('project-folder.gitProjectDirectories')
+      dir = fs.normalize dir
+      return unless fs.isDirectorySync(dir)
       baseDepth = @getPathDepth(dir)
       fs.traverseTreeSync dir, (->), (_path) =>
         if (@getPathDepth(_path) - baseDepth) > maxDepth
