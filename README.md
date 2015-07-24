@@ -2,7 +2,7 @@
 
 Quickly add/remove project folder.
 
-![gif](https://raw.githubusercontent.com/t9md/t9md/4c2bd2bb8dddfa8af1dd7da0e35944d72200eb24/img/atom-project-folder.gif)
+![gif](https://raw.githubusercontent.com/t9md/t9md/c9cbeb79d3e8f86fc60efb52e696d4340012e4da/img/atom-project-folder.gif)
 
 # What is this?
 

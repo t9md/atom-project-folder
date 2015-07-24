@@ -61,7 +61,11 @@ class View extends SelectListView
         for _path in fs.listSync(fs.normalize(dir)) when fs.isDirectorySync(_path)
           continue if hideLoadedFolder and (_path in loadedPaths)
           dirs.push _path
-      _.uniq (dirs.concat @getGitDirectories())
+
+      homeDirectory = fs.getHomeDirectory()
+      dirs = (dirs.concat @getGitDirectories()).map (dir) ->
+        dir.replace homeDirectory, '~'
+      _.uniq dirs
 
   getGitDirectories: ->
     gitProjectDirectories = atom.config.get('project-folder.gitProjectDirectories')
@@ -129,10 +133,10 @@ class View extends SelectListView
 
   # Utility
   add: (_path) ->
-    atom.project.addPath _path
+    atom.project.addPath fs.normalize(_path)
 
   remove: (_path) ->
-    atom.project.removePath _path
+    atom.project.removePath fs.normalize(_path)
 
   removeAll: ->
     for _path in atom.project.getPaths()

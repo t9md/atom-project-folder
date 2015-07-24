@@ -1,3 +1,7 @@
+## 0.1.4 - Improve
+- Replace home directory to `~`.
+- New gif on README.md
+
 ## 0.1.3 - Find Git project recursively
 - New config `gitProjectDirectories` and `gitProjectSearchMaxDepth`.
 
