@@ -125,18 +125,13 @@ class View extends SelectListView
     @panel.hide()
 
   replace: ->
-    # @removeAll()
-    pathToReplace = @getSelectedItem().replace('~', fs.getHomeDirectory())
-    for _path in atom.project.getPaths() when _path isnt pathToReplace
-      @remove _path
+    @removeAll()
     @add @getSelectedItem()
 
-    # if atom.config.get('project-folder.closeAllPaneItemsOnReplace')
-    #   pane.destroy() for pane in atom.workspace.getPanes()
-    #
-    #   # For smooth navigation. I can remove this code if there is unexpected side-effect.
-    #   workspaceElement = atom.views.getView(atom.workspace)
-    #   atom.commands.dispatch(workspaceElement, 'tree-view:toggle-focus')
+    unless atom.workspace.getPaneItems().length
+      # For smooth navigation.
+      workspaceElement = atom.views.getView(atom.workspace)
+      atom.commands.dispatch(workspaceElement, 'tree-view:toggle-focus')
 
     @cancel()
 
@@ -149,14 +144,7 @@ class View extends SelectListView
     atom.project.addPath fs.normalize(_path)
 
   remove: (_path) ->
-    projectPath = fs.normalize(_path)
-
-    editors = atom.workspace.getTextEditors().filter (editor) ->
-      editor.getPath().startsWith projectPath
-    for editor in editors
-      editor.destroy()
-
-    atom.project.removePath projectPath
+    atom.project.removePath fs.normalize(_path)
 
   removeAll: ->
     for _path in atom.project.getPaths()

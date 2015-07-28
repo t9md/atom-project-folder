@@ -25,11 +25,6 @@ config =
     type: 'boolean'
     default: true
     description: 'Hide already added folders from list when adding.'
-  closeAllPaneItemsOnReplace:
-    order: 5
-    type: 'boolean'
-    default: true
-    description: 'Close all pane items on replace'
 
 module.exports =
   config: config
