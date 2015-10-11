@@ -25,6 +25,10 @@ config =
     type: 'boolean'
     default: true
     description: 'Hide already added folders from list when adding.'
+  closeItemsForRemovedProject:
+    order: 5
+    type: 'boolean'
+    default: true
 
 module.exports =
   config: config

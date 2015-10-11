@@ -23,7 +23,6 @@ class View extends SelectListView
       lastIndex = matchIndex + 1
 
     context.span matchedChars.join(''), class: 'character-match' if matchedChars.length
-
     # Remaining characters are plain text
     context.text path.substring(lastIndex)
 
@@ -123,15 +122,24 @@ class View extends SelectListView
   cancelled: ->
     @action = null
     @panel.hide()
-
-  replace: ->
-    @removeAll()
-    @add @getSelectedItem()
-
-    unless atom.workspace.getPaneItems().length
+    if atom.workspace.getPaneItems().length
+      atom.workspace.getActivePane().activate()
+    else
       # For smooth navigation.
       workspaceElement = atom.views.getView(atom.workspace)
       atom.commands.dispatch(workspaceElement, 'tree-view:toggle-focus')
+
+  isDirectoryContain: (directory, file) ->
+    file.substr(directory.length)[0] is path.sep
+
+  destroyItemsForProject: (_path) ->
+    for editor in atom.workspace.getTextEditors() when @isDirectoryContain(_path, editor.getPath())
+      editor.destroy()
+
+  replace: ->
+    selected = @getSelectedItem()
+    @add selected
+    @removeAll except: selected
 
     @cancel()
 
@@ -144,8 +152,12 @@ class View extends SelectListView
     atom.project.addPath fs.normalize(_path)
 
   remove: (_path) ->
-    atom.project.removePath fs.normalize(_path)
+    _path = fs.normalize(_path)
+    if atom.config.get('project-folder.closeItemsForRemovedProject')
+      @destroyItemsForProject _path
+    atom.project.removePath _path
 
-  removeAll: ->
-    for _path in atom.project.getPaths()
+  removeAll: ({except}={})->
+    except = fs.normalize(except)
+    for _path in atom.project.getPaths() when _path isnt except
       @remove _path
