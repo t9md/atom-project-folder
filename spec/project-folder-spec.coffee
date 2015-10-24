@@ -171,6 +171,7 @@ describe "project-folder", ->
     file2 = getPath('normal/dir-2/dir-2.coffee')
 
     beforeEach ->
+      setConfig('closeItemsForRemovedProject', true)
       addProject(normalDir1, normalDir2)
       openFile file1
       openFile file2
