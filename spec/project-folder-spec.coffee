@@ -15,15 +15,12 @@ describe "project-folder", ->
   normalDirs = [normalDir1, normalDir2]
 
   gitRoot = fs.realpathSync(temp.mkdirSync('git'))
-
   fixturesPath = "#{__dirname}/fixtures"
   wrench.copyDirSyncRecursive(
     _path.join(fixturesPath, "git"),
     gitRoot,
     forceDelete: true
   )
-
-  # gitRoot   = getPath('git')
   gitDir1   = _path.join(gitRoot, 'dir-1')
   gitDir2   = _path.join(gitRoot, 'dir-2')
   gitDir3   = _path.join(gitRoot, 'dir-3')
@@ -32,7 +29,6 @@ describe "project-folder", ->
   fs.mkdirSync _path.join(gitRoot, 'dir-1/.git')
   fs.mkdirSync _path.join(gitRoot, 'dir-2/.git')
   fs.mkdirSync _path.join(gitRoot, 'dir-3/depth2/depth3/.git')
-
   gitDirs  = [gitDir1, gitDir2, gitDir3]
 
   dispatchCommand = (command) ->
@@ -41,6 +37,9 @@ describe "project-folder", ->
   dispatchSelectListCommand = (command) ->
     element = view.filterEditorView.element
     atom.commands.dispatch(element, command)
+
+  getProjectPaths = ->
+    atom.project.getPaths()
 
   addCustomMatchers = (spec) ->
     spec.addMatchers
@@ -51,7 +50,7 @@ describe "project-folder", ->
 
   beforeEach ->
     addCustomMatchers(this)
-    fixturesDir = atom.project.getPaths()[0]
+    fixturesDir = getProjectPaths()[0]
     atom.project.removePath(fixturesDir)
 
     workspaceElement = atom.views.getView(atom.workspace)
@@ -86,20 +85,20 @@ describe "project-folder", ->
 
     it "add confirmed paths to projects 1st", ->
       dispatchSelectListCommand 'core:confirm'
-      expect(atom.project.getPaths()).toEqual([normalDir1])
+      expect(getProjectPaths()).toEqual([normalDir1])
 
     it "add confirmed paths to projects 2nd", ->
       dispatchSelectListCommand 'core:move-down'
       dispatchSelectListCommand 'core:confirm'
-      expect(atom.project.getPaths()).toEqual([normalDir2])
+      expect(getProjectPaths()).toEqual([normalDir2])
 
     describe "confirmAndContinue", ->
       it "allow continuously add paths to projects", ->
-        expect(atom.project.getPaths()).toEqual([])
+        expect(getProjectPaths()).toEqual([])
         dispatchSelectListCommand 'project-folder:confirm-and-continue'
-        expect(atom.project.getPaths()).toEqual([normalDir1])
+        expect(getProjectPaths()).toEqual([normalDir1])
         dispatchSelectListCommand 'project-folder:confirm-and-continue'
-        expect(atom.project.getPaths()).toEqual([normalDir1, normalDir2])
+        expect(getProjectPaths()).toEqual([normalDir1, normalDir2])
 
   describe "hideLoadedFolderFromAddList", ->
     beforeEach ->
@@ -124,14 +123,12 @@ describe "project-folder", ->
         setConfig('hideLoadedFolderFromAddList', false)
         addProject(normalDir1, normalDir2)
         dispatchCommand('add')
-        items = view.list.find("li")
-        expect(view.getEmptyMessage).not.toHaveBeenCalled()
-        expect(items).toHaveLength 2
+        expect(view.list.find("li")).toHaveLength 2
 
   describe "project-folder:remove", ->
     beforeEach ->
       addProject(normalDir1, normalDir2)
-      expect(atom.project.getPaths()).toEqual([normalDir1, normalDir2])
+      expect(getProjectPaths()).toEqual([normalDir1, normalDir2])
       dispatchCommand('remove')
       expect(view).toHaveClass('remove')
       items = view.list.find("li")
@@ -141,37 +138,33 @@ describe "project-folder", ->
 
     it "remove confirmed paths from projects 1st", ->
       dispatchSelectListCommand 'core:confirm'
-      expect(atom.project.getPaths()).toEqual([normalDir2])
+      expect(getProjectPaths()).toEqual([normalDir2])
 
     it "add confirmed paths to projects 2nd", ->
       dispatchSelectListCommand 'core:move-down'
       dispatchSelectListCommand 'core:confirm'
-      expect(atom.project.getPaths()).toContain(normalDir1)
-      expect(atom.project.getPaths()).not.toContain(normalDir2)
+      expect(getProjectPaths()).toEqual([normalDir1])
 
     describe "confirmAndContinue", ->
       it "allow continuously remove paths from projects", ->
         dispatchSelectListCommand 'project-folder:confirm-and-continue'
-        expect(atom.project.getPaths()).toEqual([normalDir2])
+        expect(getProjectPaths()).toEqual([normalDir2])
         dispatchSelectListCommand 'project-folder:confirm-and-continue'
-        expect(atom.project.getPaths()).toEqual([])
+        expect(getProjectPaths()).toEqual([])
 
   describe "view::add", ->
     it "add directory to project", ->
       view.add(normalDir1)
       view.add(normalDir2)
-      expect(atom.project.getPaths()).toContain(normalDir1)
-      expect(atom.project.getPaths()).toContain(normalDir2)
+      expect(getProjectPaths()).toEqual([normalDir1, normalDir2])
 
   describe "view::remove", ->
     it "remove directory from project", ->
       addProject(normalDir1, normalDir2)
       view.remove(normalDir1)
-      expect(atom.project.getPaths()).not.toContain(normalDir1)
-      expect(atom.project.getPaths()).toContain(normalDir2)
+      expect(getProjectPaths()).toEqual [normalDir2]
       view.remove(normalDir2)
-      expect(atom.project.getPaths()).not.toContain(normalDir1)
-      expect(atom.project.getPaths()).not.toContain(normalDir2)
+      expect(getProjectPaths()).toEqual []
 
   describe "closeItemsForRemovedProject", ->
     file1 = getPath('normal/dir-1/dir-1.coffee')
@@ -188,7 +181,6 @@ describe "project-folder", ->
 
     it "close editor for removed project", ->
       view.remove(normalDir2)
-
       files = atom.workspace.getTextEditors().map (e) -> e.getPath()
       expect(files).toEqual([file1])
 
@@ -197,7 +189,7 @@ describe "project-folder", ->
       addProject(normalDir1, normalDir2)
       spyOn(view, "getSelectedItem").andReturn(gitDir1)
       view.replace()
-      expect(atom.project.getPaths()).toEqual([gitDir1])
+      expect(getProjectPaths()).toEqual([gitDir1])
 
   describe "view::getNormalDirectories", ->
     it "get directories case-1", ->

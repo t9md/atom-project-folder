@@ -1,4 +1,4 @@
-# project-folder
+# project-folder [![Build Status](https://travis-ci.org/t9md/atom-project-folder.svg?branch=master)](https://travis-ci.org/t9md/atom-project-folder)
 
 Quickly add/remove project folder.
 
@@ -70,7 +70,7 @@ e.g. My setting.
 
 ```coffeescript
 'atom-workspace:not([mini])':
-  'ctrl-cmd-p': 'project-folder:add'
+  'ctrl-alt-p': 'project-folder:add'
 ```
 
 # Config
@@ -89,9 +89,3 @@ If you want to directly edit `config.cson`, see blow.
     "~/github"
   ]
 ```
-
-# TODO
-* [x] Replace action(remove other project except selected).
-* [x] Switch add/remove with `tab` key on selectListView.
-* [ ] User defined project set(add/remove group of project with title).
-* [ ] Recursively find .git project.

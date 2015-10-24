@@ -1,3 +1,7 @@
+## 0.1.7 - Improve
+- Add spec
+- Minor refactoring
+
 ## 0.1.6 - FIX
 - Replace home directory to `~` wasn'nt implemented on delete list.
 - Refactoring.
