@@ -1,10 +1,19 @@
 {SelectListView, $$} = require 'atom-space-pen-views'
 fs = require 'fs-plus'
-path = require 'path'
+_path = require 'path'
 _ = require 'underscore-plus'
 {match} = require 'fuzzaldrin'
 
-module.exports =
+settings = require './settings'
+
+# Utils
+# -------------------------
+getPathDepth = (path) ->
+  path.split(_path.sep).length
+
+isGitRepository = (path) ->
+  fs.isDirectorySync _path.join(path, '.git')
+
 class View extends SelectListView
   # Copied from FuzzzyFinder's and modified a little.
   @highlightMatches: (context, path, matches, offsetIndex=0) ->
@@ -34,18 +43,18 @@ class View extends SelectListView
       'project-folder:switch-action': => @switchAction()
       'project-folder:confirm-and-continue': => @confirmAndContinue()
 
-    @panel ?= atom.workspace.addModalPanel(item: this, visible: false)
+    @panel ?= atom.workspace.addModalPanel({item: this, visible: false})
     this
 
   viewForItem: (item) ->
     matches  = match(item, @getFilterQuery())
-    basename = path.basename(item)
+    basename = _path.basename(item)
     $$ ->
       baseOffset = item.length - basename.length
       @li class: 'two-lines', =>
-        @div class: "primary-line file icon icon-repo", 'data-name': basename, 'data-path': item, =>
+        @div {class: "primary-line file icon icon-repo", 'data-name': basename, 'data-path': item}, =>
           View.highlightMatches(this, basename, matches, baseOffset)
-        @div class: 'secondary-line path no-icon', =>
+        @div {class: 'secondary-line path no-icon'}, =>
           View.highlightMatches(this, item, matches)
 
   getItems: ->
@@ -55,60 +64,51 @@ class View extends SelectListView
         dirs = loadedPaths
       when 'add'
         dirs = _.uniq @getNormalDirectories().concat(@getGitDirectories())
-        if atom.config.get('project-folder.hideLoadedFolderFromAddList')
-          dirs = _.reject dirs, (_path) ->
-            _path in loadedPaths
+        if settings.get('hideLoadedFolderFromAddList')
+          dirs = _.reject(dirs, (path) -> path in loadedPaths)
 
     dirs.map (dir) ->
       dir.replace fs.getHomeDirectory(), '~'
 
   getNormalDirectories: ->
     dirs = []
-    for dir in atom.config.get('project-folder.projectRootDirectories')
-      dir = fs.normalize dir
-      for _path in fs.listSync(dir) when fs.isDirectorySync(_path)
-        dirs.push _path
+    for dir in settings.get('projectRootDirectories')
+      for path in fs.listSync(fs.normalize(dir)) when fs.isDirectorySync(path)
+        dirs.push path
     dirs
 
   getGitDirectories: ->
-    maxDepth = atom.config.get('project-folder.gitProjectSearchMaxDepth')
+    maxDepth = settings.get('gitProjectSearchMaxDepth')
 
     dirs = []
-    for dir in atom.config.get('project-folder.gitProjectDirectories')
-      dir = fs.normalize dir
-      return unless fs.isDirectorySync(dir)
-      baseDepth = @getPathDepth(dir)
-      fs.traverseTreeSync dir, (->), (_path) =>
-        if (@getPathDepth(_path) - baseDepth) > maxDepth
+    for dir in settings.get('gitProjectDirectories')
+      dir = fs.normalize(dir)
+      continue unless fs.isDirectorySync(dir)
+
+      baseDepth = getPathDepth(dir)
+      fs.traverseTreeSync dir, (->), (path) ->
+        if (getPathDepth(path) - baseDepth) > maxDepth
           false
         else
-          dirs.push _path if @isGitRepository(_path)
+          dirs.push path if isGitRepository(path)
           true
     dirs
-
-  getPathDepth: (_path) ->
-    _path.split(path.sep).length
-
-  isGitRepository: (_path) ->
-    fs.isDirectorySync path.join(_path,'.git')
-
-  showItems: ->
-    @setItems @getItems()
 
   populateList: ->
     super
     @removeClass 'add remove'
     @addClass @action
 
+  # @action should be 'add' or 'remove'
   start: (@action) ->
     @storeFocusedElement()
-    @showItems()
+    @setItems @getItems()
     @panel.show()
     @focusFilterEditor()
 
   confirmAndContinue: ->
     selectedItem = @getSelectedItem()
-    this[@action](selectedItem)
+    this[@action](fs.normalize(selectedItem))
 
     selectedItemView = @getSelectedItemView()
     @selectNextItemView()
@@ -116,7 +116,7 @@ class View extends SelectListView
     @items = (item for item in @items when item isnt selectedItem)
 
   confirmed: (item) ->
-    this[@action] item
+    this[@action] fs.normalize(item)
     @cancel()
 
   cancelled: ->
@@ -129,35 +129,29 @@ class View extends SelectListView
       workspaceElement = atom.views.getView(atom.workspace)
       atom.commands.dispatch(workspaceElement, 'tree-view:toggle-focus')
 
-  isDirectoryContain: (directory, file) ->
-    file.substr(directory.length)[0] is path.sep
+  switchAction: ->
+    @action = if @action is 'add' then 'remove' else 'add'
+    @setItems @getItems()
 
-  destroyItemsForProject: (_path) ->
-    for editor in atom.workspace.getTextEditors() when @isDirectoryContain(_path, editor.getPath())
-      editor.destroy()
+  add: (path) ->
+    atom.project.addPath path
+
+  remove: (path) ->
+    if settings.get('closeItemsForRemovedProject')
+      dir = _.detect(atom.project.getDirectories(), (d) -> d.getPath() is path)
+      for e in atom.workspace.getTextEditors() when dir.contains(e.getPath())
+        e.destroy()
+
+    atom.project.removePath path
 
   replace: ->
     selected = @getSelectedItem()
     @add selected
-    @removeAll except: selected
+
+    keep = fs.normalize(selected)
+    for p in atom.project.getPaths() when p isnt keep
+      @remove p
 
     @cancel()
 
-  switchAction: ->
-    @action = if @action is 'add' then 'remove' else 'add'
-    @showItems()
-
-  # Utility
-  add: (_path) ->
-    atom.project.addPath fs.normalize(_path)
-
-  remove: (_path) ->
-    _path = fs.normalize(_path)
-    if atom.config.get('project-folder.closeItemsForRemovedProject')
-      @destroyItemsForProject _path
-    atom.project.removePath _path
-
-  removeAll: ({except}={})->
-    except = fs.normalize(except)
-    for _path in atom.project.getPaths() when _path isnt except
-      @remove _path
+module.exports = View
