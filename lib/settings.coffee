@@ -36,4 +36,5 @@ module.exports = new Settings 'project-folder',
   closeItemsForRemovedProject:
     order: 5
     type: 'boolean'
-    default: true
+    default: false
+    description: 'close editor when containing project was removed'
