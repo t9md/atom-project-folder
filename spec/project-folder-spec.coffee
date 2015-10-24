@@ -17,16 +17,15 @@ describe "project-folder", ->
   gitRoot = fs.realpathSync(temp.mkdirSync('git'))
 
   fixturesPath = "#{__dirname}/fixtures"
-  # fixturesPath = atom.project.getPaths()[0]
   wrench.copyDirSyncRecursive(
     _path.join(fixturesPath, "git"),
     gitRoot,
     forceDelete: true
   )
 
-  gitRoot   = getPath('git')
-  gitDir1   = _path.join(gitRoot, 'dir-1') # contains .git
-  gitDir2   = _path.join(gitRoot, 'dir-2') # contains .git
+  # gitRoot   = getPath('git')
+  gitDir1   = _path.join(gitRoot, 'dir-1')
+  gitDir2   = _path.join(gitRoot, 'dir-2')
   gitDir3   = _path.join(gitRoot, 'dir-3')
   gitDepth2 = _path.join(gitRoot, 'dir-3/depth2')
   gitDepth3 = _path.join(gitRoot, 'dir-3/depth2/depth3')
@@ -184,18 +183,11 @@ describe "project-folder", ->
       openFile file2
 
       runs ->
-        editors = atom.workspace.getTextEditors()
-        editorsPaths = editors.map (e) -> e.getPath()
-        expect(editors).toHaveLength 2
-        expect(editorsPaths).toContain(file1)
-        expect(editorsPaths).toContain(file2)
+        files = atom.workspace.getTextEditors().map (e) -> e.getPath()
+        expect(files).toEqual([file1, file2])
 
     it "close editor for removed project", ->
-      spyOn(atom.project, "removePath").andCallThrough()
       view.remove(normalDir2)
-
-      waitsFor ->
-        atom.project.removePath.callCount is 1
 
       files = atom.workspace.getTextEditors().map (e) -> e.getPath()
       expect(files).toEqual([file1])
