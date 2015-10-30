@@ -1,3 +1,6 @@
+## 0.1.8 - FIX
+- [FIX] Replace was not worked for new project(not listed project list).
+
 ## 0.1.7 - Improve
 - Add spec
 - Minor refactoring
