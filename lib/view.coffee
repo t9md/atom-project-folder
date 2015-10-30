@@ -146,10 +146,9 @@ class View extends SelectListView
 
   replace: ->
     selected = @getSelectedItem()
-    @add selected
-
-    keep = fs.normalize(selected)
-    for p in atom.project.getPaths() when p isnt keep
+    projectPath = fs.normalize(selected)
+    @add projectPath
+    for p in atom.project.getPaths() when p isnt projectPath
       @remove p
 
     @cancel()
