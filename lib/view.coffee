@@ -108,6 +108,7 @@ class View extends SelectListView
 
   confirmAndContinue: ->
     selectedItem = @getSelectedItem()
+    return unless selectedItem?
     this[@action](fs.normalize(selectedItem))
 
     selectedItemView = @getSelectedItemView()
