@@ -1,7 +1,7 @@
 {
   "name": "project-folder",
   "main": "./lib/main",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Quickly add/remove project folder",
   "keywords": [],
   "activationCommands": {
