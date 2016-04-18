@@ -1,3 +1,6 @@
+## 0.1.9 - FIX
+- Fix: Do nothing when not item was selected. #2
+
 ## 0.1.8 - FIX
 - [FIX] Replace was not worked for new project(not listed project list).
 
