@@ -39,6 +39,7 @@ class View extends SelectListView
     super
     @addClass('project-folder')
     atom.commands.add @element,
+      'project-folder:new-window': => @newWindow()
       'project-folder:replace': => @replace()
       'project-folder:switch-action': => @switchAction()
       'project-folder:confirm-and-continue': => @confirmAndContinue()
@@ -144,6 +145,11 @@ class View extends SelectListView
         e.destroy()
 
     atom.project.removePath path
+
+  newWindow: ->
+    selected = @getSelectedItem()
+    projectPath = fs.normalize(selected)
+    atom.open({pathsToOpen: [projectPath], newWindow: true})
 
   replace: ->
     selected = @getSelectedItem()

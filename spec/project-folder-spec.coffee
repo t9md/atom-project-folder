@@ -192,6 +192,12 @@ describe "project-folder", ->
       view.replace()
       expect(getProjectPaths()).toEqual([gitDir1])
 
+  describe "view::newWindow", ->
+    it "opens the project folder in a new atom window", ->
+      spyOn(view, "getSelectedItem").andReturn(normalDir1)
+      view.newWindow()
+      # How to check if the new window opened with the directory?
+
   describe "view::getNormalDirectories", ->
     it "get directories case-1", ->
       setConfig 'projectRootDirectories', [normalRoot]
