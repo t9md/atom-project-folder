@@ -216,3 +216,10 @@ describe "project-folder", ->
         setConfig('gitProjectDirectories', [gitRoot])
         setConfig('gitProjectSearchMaxDepth', 1)
         expect(view.getGitDirectories()).toEqual([gitDir1, gitDir2])
+
+  describe "view::openInNewWindow", ->
+    it "open selected project in new window", ->
+      spyOn(view, "getSelectedItem").andReturn(normalDir1)
+      spyOn(atom, "open")
+      view.openInNewWindow()
+      expect(atom.open).toHaveBeenCalledWith({pathsToOpen: [normalDir1], newWindow: true})

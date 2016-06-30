@@ -42,6 +42,7 @@ class View extends SelectListView
       'project-folder:replace': => @replace()
       'project-folder:switch-action': => @switchAction()
       'project-folder:confirm-and-continue': => @confirmAndContinue()
+      'project-folder:open-in-new-window': => @openInNewWindow()
 
     @panel ?= atom.workspace.addModalPanel({item: this, visible: false})
     this
@@ -151,7 +152,12 @@ class View extends SelectListView
     @add projectPath
     for p in atom.project.getPaths() when p isnt projectPath
       @remove p
+    @cancel()
 
+  openInNewWindow: ->
+    selected = @getSelectedItem()
+    projectPath = fs.normalize(selected)
+    atom.open({pathsToOpen: [projectPath], newWindow: true})
     @cancel()
 
 module.exports = View

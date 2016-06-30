@@ -1,3 +1,6 @@
+## 0.2.0
+- New: New `project-folder:open-in-new-window` command mapped to `ctrl-enter` by default.
+
 ## 0.1.9 - FIX
 - Fix: Do nothing when not item was selected. #2
 

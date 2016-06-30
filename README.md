@@ -27,7 +27,8 @@ This package enables you to quickly do above actions and provide extra command t
 In mini editor
 * `project-folder:replace`: Remove project except selected.
 * `project-folder:switch-action`: Switch action 'add' / 'remove'. CSS style changes depending on action add(`blue`), remove(`red`), so that you can understand what you are doing.
-* 'project-folder:confirm-and-continue': Confirm action without closing select list, you can continue to add/remove next project folder.
+* `project-folder:confirm-and-continue`: Confirm action without closing select list, you can continue to add/remove next project folder.
+* `project-folder:open-in-new-window`: Open selected project in new window.
 
 # How to use
 
@@ -60,8 +61,9 @@ This keymap is effective only while select list is shown.
 ```coffeescript
 '.project-folder atom-text-editor[mini]':
   'ctrl-r': 'project-folder:replace'
-  'tab':    'project-folder:switch-action'
-  'space':  'project-folder:confirm-and-continue'
+  'tab': 'project-folder:switch-action'
+  'space': 'project-folder:confirm-and-continue'
+  'ctrl-enter': 'project-folder:open-in-new-window'
 ```
 
 To start `project-folder:add` or `project-folder:remove`, invoke from command pallete, or set keymap by yourself.
