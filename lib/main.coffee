@@ -36,7 +36,7 @@ module.exports =
   readConfig: ->
     config = {}
 
-    filePath = @getUserConfigPath()
+    filePath = @getConfigPath()
     return config unless fs.existsSync(filePath)
 
     try
@@ -45,7 +45,7 @@ module.exports =
       atom.notifications.addError('[project-folder] config file has error', detail: error.message)
     config
 
-  getUserConfigPath: ->
+  getConfigPath: ->
     fs.normalize(settings.get('configPath'))
 
   loadGroups: ->
@@ -53,7 +53,7 @@ module.exports =
       @view.setGroups(groups)
 
   openConfig: ->
-    filePath = @getUserConfigPath()
+    filePath = @getConfigPath()
 
     atom.workspace.open(filePath, searchAllPanes: true).then (editor) =>
       unless fs.existsSync(filePath)

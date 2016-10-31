@@ -14,6 +14,7 @@ getPathDepth = (path) ->
 isGitRepository = (path) ->
   fs.isDirectorySync _path.join(path, '.git')
 
+# Copied & modified from fuzzy-finder's code.
 highlightMatches = (context, path, matches, offsetIndex=0) ->
   lastIndex = 0
   matchedChars = [] # Build up a set of matched chars to be more semantic
@@ -30,13 +31,12 @@ highlightMatches = (context, path, matches, offsetIndex=0) ->
     lastIndex = matchIndex + 1
 
   context.span matchedChars.join(''), class: 'character-match' if matchedChars.length
-  # Remaining characters are plain text
-  context.text path.substring(lastIndex)
+  context.text path.substring(lastIndex) # Remaining characters are plain text
 
+module.exports =
 class View extends SelectListView
   groups: null
 
-  # Copied from FuzzzyFinder's and modified a little.
   initialize: ->
     super
     @addClass('project-folder')
@@ -46,63 +46,61 @@ class View extends SelectListView
       'project-folder:confirm-and-continue': => @confirmAndContinue()
       'project-folder:open-in-new-window': => @openInNewWindow()
 
-    @panel ?= atom.workspace.addModalPanel({item: this, visible: false})
+    @panel ?= atom.workspace.addModalPanel(item: this, visible: false)
     this
 
   viewForItem: (item) ->
-    {itemPath, itemType} = item
-    matches  = match(itemPath, @getFilterQuery())
-    iconName = switch itemType
+    matches = match(item.dir, @getFilterQuery())
+    iconName = switch item.type
       when 'group' then 'briefcase'
       when 'directory' then 'repo'
 
-    basename = _path.basename(itemPath)
+    basename = _path.basename(item.dir)
     $$ ->
-      baseOffset = itemPath.length - basename.length
+      baseOffset = item.dir.length - basename.length
       @li class: 'two-lines', =>
-        @div {class: "primary-line file icon icon-#{iconName}", 'data-name': basename, 'data-path': itemPath}, =>
+        @div {class: "primary-line file icon icon-#{iconName}", 'data-name': basename, 'data-path': item.dir}, =>
           highlightMatches(this, basename, matches, baseOffset)
         @div {class: 'secondary-line path no-icon'}, =>
-          highlightMatches(this, itemPath, matches)
+          highlightMatches(this, item.dir, matches)
 
   getFilterKey: ->
-    "itemPath"
+    "dir"
 
   setGroups: (@groups) ->
-    @itemsForGroups = null
+    @itemsForGroups = null # invalidate cache
 
   getItemsForGroups: ->
-    return @itemsForGroups if @itemsForGroups?
-
-    items = []
-    for groupName, dirs of @groups when _.isArray(dirs)
-      item = {itemPath: groupName, itemType: "group", dirs: dirs}
-      items.push(item)
-    @itemsForGroups = items
+    @itemsForGroups ?= do =>
+      items = []
+      for groupName, dirs of @groups when _.isArray(dirs)
+        item = {dir: groupName, type: "group", dirs: dirs}
+        items.push(item)
+      items
 
   getItems: ->
-    loadedPaths = atom.project.getPaths()
     items = []
     items.push(@getItemsForGroups()...)
 
+    loadedDirs = atom.project.getPaths()
     switch @action
       when 'remove'
-        dirs = loadedPaths
+        dirs = loadedDirs
       when 'add'
-        dirs = _.uniq @getNormalDirectories().concat(@getGitDirectories())
+        dirs = _.uniq([@getNormalDirectories()..., @getGitDirectories()...])
         if settings.get('hideLoadedFolderFromAddList')
-          dirs = _.reject(dirs, (path) -> path in loadedPaths)
+          dirs = _.reject(dirs, (dir) -> dir in loadedDirs)
 
+    homeDir = fs.getHomeDirectory()
     for dir in dirs
-      item = {itemPath: dir.replace(fs.getHomeDirectory(), '~'), itemType: "directory"}
-      items.push(item)
+      items.push(dir: dir.replace(homeDir, '~'), type: "directory")
     items
 
   getNormalDirectories: ->
     dirs = []
     for dir in settings.get('projectRootDirectories')
       for path in fs.listSync(fs.normalize(dir)) when fs.isDirectorySync(path)
-        dirs.push path
+        dirs.push(path)
     dirs
 
   getGitDirectories: ->
@@ -118,7 +116,7 @@ class View extends SelectListView
         if (getPathDepth(path) - baseDepth) > maxDepth
           false
         else
-          dirs.push path if isGitRepository(path)
+          dirs.push(path) if isGitRepository(path)
           true
     dirs
 
@@ -142,7 +140,7 @@ class View extends SelectListView
     selectedItemView = @getSelectedItemView()
     @selectNextItemView()
     selectedItemView.remove()
-    @items = (item for item in @items when item isnt selectedItem)
+    @items = @items.filter (item) -> item isnt selectedItem
 
   confirmed: (item) ->
     this[@action](item)
@@ -151,6 +149,7 @@ class View extends SelectListView
   cancelled: ->
     @action = null
     @panel.hide()
+
     if atom.workspace.getPaneItems().length
       atom.workspace.getActivePane().activate()
     else
@@ -165,55 +164,60 @@ class View extends SelectListView
   # Add
   # -------------------------
   add: (item) ->
-    switch item.itemType
-      when 'directory' then @addProject(item.itemPath)
-      when 'group' then @addProject(dir) for dir in item.dirs
+    switch item.type
+      when 'group'
+        type = "directory"
+        @add({dir, type}) for dir in item.dirs
 
-  addProject: (directory) ->
-    directory = fs.normalize(directory)
-    if fs.isDirectorySync(directory)
-      atom.project.addPath(directory)
+      when 'directory'
+        dir = fs.normalize(item.dir)
+        if fs.isDirectorySync(dir)
+          atom.project.addPath(dir)
 
   # Remove
   # -------------------------
   remove: (item) ->
-    switch item.itemType
-      when 'directory' then @removeProject(item.itemPath)
-      when 'group' then @removeProject(dir) for dir in item.dirs
+    switch item.type
+      when 'group'
+        type = "directory"
+        @remove({dir, type}) for dir in item.dirs
 
-  removeProject: (directory) ->
-    directory = fs.normalize(directory)
-    if settings.get('closeItemsForRemovedProject')
-      dir = _.detect(atom.project.getDirectories(), (d) -> d.getPath() is directory)
-      for e in atom.workspace.getTextEditors() when dir.contains(e.getPath())
-        e.destroy()
+      when 'directory'
+        dir = fs.normalize(item.dir)
+        if settings.get('closeItemsForRemovedProject')
+          directory = _.detect(atom.project.getDirectories(), (d) -> d.getPath() is dir)
+          editors = atom.workspace.getTextEditors()
+          for editor in editors when directory.contains(editor.getPath())
+            editor.destroy()
 
-    atom.project.removePath(directory)
+        atom.project.removePath(dir)
 
   # Replace
   # -------------------------
   replace: ->
-    selected = @getSelectedItem()
-    @add(selected)
+    item = @getSelectedItem()
+    @add(item)
 
-    itemPaths = switch selected.itemType
-      when 'directory' then [fs.normalize(selected.itemPath)]
-      when 'group' then (fs.normalize(dir) for dir in selected.dirs)
+    switch item.type
+      when 'directory'
+        dirs = [fs.normalize(item.dir)]
+      when 'group'
+        dirs = (fs.normalize(dir) for dir in item.dirs)
 
-    for loadedProjectPath in atom.project.getPaths() when loadedProjectPath not in itemPaths
-      item = {itemPath: loadedProjectPath, itemType: "directory"}
-      @remove(item)
+    type = 'directory'
+    for dir in atom.project.getPaths() when dir not in dirs
+      @remove({dir, type})
     @cancel()
 
   # Open in new window
   # -------------------------
   openInNewWindow: ->
-    selected = @getSelectedItem()
-    itemPaths = switch selected.itemType
-      when 'directory' then [fs.normalize(selected.itemPath)]
-      when 'group' then (fs.normalize(dir) for dir in selected.dirs)
+    item = @getSelectedItem()
+    switch item.type
+      when 'directory'
+        dirs = [fs.normalize(item.dir)]
+      when 'group'
+        dirs = (fs.normalize(dir) for dir in item.dirs)
 
-    atom.open(pathsToOpen: itemPaths, newWindow: true)
+    atom.open(pathsToOpen: dirs, newWindow: true)
     @cancel()
-
-module.exports = View

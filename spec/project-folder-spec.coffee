@@ -154,16 +154,16 @@ describe "project-folder", ->
 
   describe "view::add", ->
     it "add directory to project", ->
-      view.add({itemPath: normalDir1, itemType: 'directory'})
-      view.add({itemPath: normalDir2, itemType: 'directory'})
+      view.add(dir: normalDir1, type: 'directory')
+      view.add(dir: normalDir2, type: 'directory')
       expect(getProjectPaths()).toEqual([normalDir1, normalDir2])
 
   describe "view::remove", ->
     it "remove directory from project", ->
       addProject(normalDir1, normalDir2)
-      view.remove({itemPath: normalDir1, itemType: 'directory'})
+      view.remove(dir: normalDir1, type: 'directory')
       expect(getProjectPaths()).toEqual [normalDir2]
-      view.remove({itemPath: normalDir2, itemType: 'directory'})
+      view.remove(dir: normalDir2, type: 'directory')
       expect(getProjectPaths()).toEqual []
 
   describe "closeItemsForRemovedProject", ->
@@ -181,14 +181,14 @@ describe "project-folder", ->
         expect(files).toEqual([file1, file2])
 
     it "close editor for removed project", ->
-      view.remove({itemPath: normalDir2, itemType: 'directory'})
+      view.remove(dir: normalDir2, type: 'directory')
       files = atom.workspace.getTextEditors().map (e) -> e.getPath()
       expect(files).toEqual([file1])
 
   describe "view::replace", ->
     it "remove all project except passed one", ->
       addProject(normalDir1, normalDir2)
-      selectedItem = {itemPath: gitDir1, itemType: 'directory'}
+      selectedItem = dir: gitDir1, type: 'directory'
       spyOn(view, "getSelectedItem").andReturn(selectedItem)
       view.replace()
       expect(getProjectPaths()).toEqual([gitDir1])
@@ -220,7 +220,7 @@ describe "project-folder", ->
 
   describe "view::openInNewWindow", ->
     it "open selected project in new window", ->
-      selectedItem = {itemPath: normalDir1, itemType: 'directory'}
+      selectedItem = dir: normalDir1, type: 'directory'
       spyOn(view, "getSelectedItem").andReturn(selectedItem)
       spyOn(atom, "open")
       view.openInNewWindow()
