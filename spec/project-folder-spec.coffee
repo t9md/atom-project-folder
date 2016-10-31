@@ -154,16 +154,16 @@ describe "project-folder", ->
 
   describe "view::add", ->
     it "add directory to project", ->
-      view.add(normalDir1)
-      view.add(normalDir2)
+      view.add({itemPath: normalDir1, itemType: 'directory'})
+      view.add({itemPath: normalDir2, itemType: 'directory'})
       expect(getProjectPaths()).toEqual([normalDir1, normalDir2])
 
   describe "view::remove", ->
     it "remove directory from project", ->
       addProject(normalDir1, normalDir2)
-      view.remove(normalDir1)
+      view.remove({itemPath: normalDir1, itemType: 'directory'})
       expect(getProjectPaths()).toEqual [normalDir2]
-      view.remove(normalDir2)
+      view.remove({itemPath: normalDir2, itemType: 'directory'})
       expect(getProjectPaths()).toEqual []
 
   describe "closeItemsForRemovedProject", ->
@@ -181,7 +181,7 @@ describe "project-folder", ->
         expect(files).toEqual([file1, file2])
 
     it "close editor for removed project", ->
-      view.remove(normalDir2)
+      view.remove({itemPath: normalDir2, itemType: 'directory'})
       files = atom.workspace.getTextEditors().map (e) -> e.getPath()
       expect(files).toEqual([file1])
 

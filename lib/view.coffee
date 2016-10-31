@@ -1,7 +1,7 @@
 {SelectListView, $$} = require 'atom-space-pen-views'
 fs = require 'fs-plus'
-_path = require 'path'
 _ = require 'underscore-plus'
+_path = require 'path'
 {match} = require 'fuzzaldrin'
 
 settings = require './settings'
@@ -34,6 +34,8 @@ highlightMatches = (context, path, matches, offsetIndex=0) ->
   context.text path.substring(lastIndex)
 
 class View extends SelectListView
+  groups: null
+
   # Copied from FuzzzyFinder's and modified a little.
   initialize: ->
     super
@@ -66,8 +68,23 @@ class View extends SelectListView
   getFilterKey: ->
     "itemPath"
 
+  setGroups: (@groups) ->
+    @itemsForGroups = null
+
+  getItemsForGroups: ->
+    return @itemsForGroups if @itemsForGroups?
+
+    items = []
+    for groupName, dirs of @groups when _.isArray(dirs)
+      item = {itemPath: groupName, itemType: "group", dirs: dirs}
+      items.push(item)
+    @itemsForGroups = items
+
   getItems: ->
     loadedPaths = atom.project.getPaths()
+    items = []
+    items.push(@getItemsForGroups()...)
+
     switch @action
       when 'remove'
         dirs = loadedPaths
@@ -76,13 +93,10 @@ class View extends SelectListView
         if settings.get('hideLoadedFolderFromAddList')
           dirs = _.reject(dirs, (path) -> path in loadedPaths)
 
-    dirs.map (dir) ->
-      itemPath = dir.replace(fs.getHomeDirectory(), '~')
-      if itemPath.startsWith("~/github/atom-cursor-history")
-        itemType = 'group'
-      else
-        itemType = 'directory'
-      {itemPath, itemType}
+    for dir in dirs
+      item = {itemPath: dir.replace(fs.getHomeDirectory(), '~'), itemType: "directory"}
+      items.push(item)
+    items
 
   getNormalDirectories: ->
     dirs = []
@@ -123,15 +137,15 @@ class View extends SelectListView
   confirmAndContinue: ->
     selectedItem = @getSelectedItem()
     return unless selectedItem?
-    this[@action](selectedItem.itemPath)
+    this[@action](selectedItem)
 
     selectedItemView = @getSelectedItemView()
     @selectNextItemView()
     selectedItemView.remove()
     @items = (item for item in @items when item isnt selectedItem)
 
-  confirmed: ({itemPath}) ->
-    this[@action](itemPath)
+  confirmed: (item) ->
+    this[@action](item)
     @cancel()
 
   cancelled: ->
@@ -146,33 +160,60 @@ class View extends SelectListView
 
   switchAction: ->
     @action = if @action is 'add' then 'remove' else 'add'
-    @setItems @getItems()
+    @setItems(@getItems())
 
-  add: (itemPath) ->
-    filePath = fs.normalize(itemPath)
-    atom.project.addPath(filePath)
+  # Add
+  # -------------------------
+  add: (item) ->
+    switch item.itemType
+      when 'directory' then @addProject(item.itemPath)
+      when 'group' then @addProject(dir) for dir in item.dirs
 
-  remove: (itemPath) ->
-    itemPath = fs.normalize(itemPath)
+  addProject: (directory) ->
+    directory = fs.normalize(directory)
+    if fs.isDirectorySync(directory)
+      atom.project.addPath(directory)
+
+  # Remove
+  # -------------------------
+  remove: (item) ->
+    switch item.itemType
+      when 'directory' then @removeProject(item.itemPath)
+      when 'group' then @removeProject(dir) for dir in item.dirs
+
+  removeProject: (directory) ->
+    directory = fs.normalize(directory)
     if settings.get('closeItemsForRemovedProject')
-      dir = _.detect(atom.project.getDirectories(), (d) -> d.getPath() is itemPath)
+      dir = _.detect(atom.project.getDirectories(), (d) -> d.getPath() is directory)
       for e in atom.workspace.getTextEditors() when dir.contains(e.getPath())
         e.destroy()
 
-    atom.project.removePath(itemPath)
+    atom.project.removePath(directory)
 
+  # Replace
+  # -------------------------
   replace: ->
     selected = @getSelectedItem()
-    itemPath = fs.normalize(selected.itemPath)
-    @add(itemPath)
-    for p in atom.project.getPaths() when p isnt itemPath
-      @remove(p)
+    @add(selected)
+
+    itemPaths = switch selected.itemType
+      when 'directory' then [fs.normalize(selected.itemPath)]
+      when 'group' then (fs.normalize(dir) for dir in selected.dirs)
+
+    for loadedProjectPath in atom.project.getPaths() when loadedProjectPath not in itemPaths
+      item = {itemPath: loadedProjectPath, itemType: "directory"}
+      @remove(item)
     @cancel()
 
+  # Open in new window
+  # -------------------------
   openInNewWindow: ->
     selected = @getSelectedItem()
-    itemPath = fs.normalize(selected.itemPath)
-    atom.open(pathsToOpen: [itemPath], newWindow: true)
+    itemPaths = switch selected.itemType
+      when 'directory' then [fs.normalize(selected.itemPath)]
+      when 'group' then (fs.normalize(dir) for dir in selected.dirs)
+
+    atom.open(pathsToOpen: itemPaths, newWindow: true)
     @cancel()
 
 module.exports = View
