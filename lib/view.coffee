@@ -50,7 +50,10 @@ class View extends SelectListView
   viewForItem: (item) ->
     {itemPath, itemType} = item
     matches  = match(itemPath, @getFilterQuery())
-    iconName = if itemType is 'group' then 'briefcase' else 'repo'
+    iconName = switch itemType
+      when 'group' then 'briefcase'
+      when 'directory' then 'repo'
+
     basename = _path.basename(itemPath)
     $$ ->
       baseOffset = itemPath.length - basename.length
@@ -78,7 +81,7 @@ class View extends SelectListView
       if itemPath.startsWith("~/github/atom-cursor-history")
         itemType = 'group'
       else
-        itemType = 'repo'
+        itemType = 'directory'
       {itemPath, itemType}
 
   getNormalDirectories: ->

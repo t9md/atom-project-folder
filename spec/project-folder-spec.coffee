@@ -188,7 +188,8 @@ describe "project-folder", ->
   describe "view::replace", ->
     it "remove all project except passed one", ->
       addProject(normalDir1, normalDir2)
-      spyOn(view, "getSelectedItem").andReturn(gitDir1)
+      selectedItem = {itemPath: gitDir1, itemType: 'directory'}
+      spyOn(view, "getSelectedItem").andReturn(selectedItem)
       view.replace()
       expect(getProjectPaths()).toEqual([gitDir1])
 
