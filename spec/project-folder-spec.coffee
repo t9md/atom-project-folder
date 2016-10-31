@@ -220,7 +220,8 @@ describe "project-folder", ->
 
   describe "view::openInNewWindow", ->
     it "open selected project in new window", ->
-      spyOn(view, "getSelectedItem").andReturn(normalDir1)
+      selectedItem = {itemPath: normalDir1, itemType: 'directory'}
+      spyOn(view, "getSelectedItem").andReturn(selectedItem)
       spyOn(atom, "open")
       view.openInNewWindow()
       expect(atom.open).toHaveBeenCalledWith({pathsToOpen: [normalDir1], newWindow: true})
