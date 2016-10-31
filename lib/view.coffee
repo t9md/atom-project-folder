@@ -80,16 +80,20 @@ class View extends SelectListView
 
   getItems: ->
     items = []
-    items.push(@getItemsForGroups()...)
 
     loadedDirs = atom.project.getPaths()
     switch @action
-      when 'remove'
-        dirs = loadedDirs
       when 'add'
+        items.push(@getItemsForGroups()...)
         dirs = _.uniq([@getNormalDirectories()..., @getGitDirectories()...])
         if settings.get('hideLoadedFolderFromAddList')
           dirs = _.reject(dirs, (dir) -> dir in loadedDirs)
+      when 'remove'
+        for item in @getItemsForGroups()
+          # We show group if at least one dir was loaded fom the group.
+          if item.dirs.some((dir) -> fs.normalize(dir) in loadedDirs)
+            items.push(item)
+        dirs = loadedDirs
 
     homeDir = fs.getHomeDirectory()
     for dir in dirs
@@ -185,10 +189,12 @@ class View extends SelectListView
       when 'directory'
         dir = fs.normalize(item.dir)
         if settings.get('closeItemsForRemovedProject')
-          directory = _.detect(atom.project.getDirectories(), (d) -> d.getPath() is dir)
-          editors = atom.workspace.getTextEditors()
-          for editor in editors when directory.contains(editor.getPath())
-            editor.destroy()
+          if directory = _.detect(atom.project.getDirectories(), (d) -> d.getPath() is dir)
+            # In case group is passed to remove, it might included non existing directory
+            # E.g gropus inluding three directory, but one directory is already unloaded.
+            editors = atom.workspace.getTextEditors()
+            for editor in editors when directory.contains(editor.getPath())
+              editor.destroy()
 
         atom.project.removePath(dir)
 
