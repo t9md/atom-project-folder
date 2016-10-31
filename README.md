@@ -8,7 +8,7 @@ Quickly add/remove project folder.
 
 Atom provide `application:add-project-folder` to add your project to project list.  
 And you can right click and chose `Remove Project Folder` to remove project from list.  
-This package enables you to quickly do above actions and provide extra command to manipulate project list.
+This package enables you to quickly do above actions and provide extra commands to manipulate project list.
 
 # Features
 
