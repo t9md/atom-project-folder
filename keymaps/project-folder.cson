@@ -1,5 +1,5 @@
 '.project-folder atom-text-editor[mini]':
   'ctrl-r': 'project-folder:replace'
-  'tab':    'project-folder:switch-action'
-  'space':  'project-folder:confirm-and-continue'
+  'tab': 'project-folder:switch-action'
+  'space': 'project-folder:confirm-and-continue'
   'ctrl-enter': 'project-folder:open-in-new-window'
