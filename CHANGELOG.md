@@ -1,3 +1,6 @@
+## 0.3.0
+- New: Support user defined project-group(add/remove set of project). See README.md for how-to-use. #5
+
 ## 0.2.0
 - New: New `project-folder:open-in-new-window` command mapped to `ctrl-enter` by default.
 
