@@ -12,17 +12,19 @@ This package enables you to quickly do above actions and provide extra commands 
 
 # Features
 
-* Quickly add/remove project folder.
+* Quickly add/remove project folder, or open in new window(`ctrl-enter` in select-list)
 * Can switch action between `add`/`remove` with `tab` and UI color reflect current action.
-* Replace all project folders with selected item.
+* Replace all project folders with selected item(`ctrl-r` in select-list).
 * Hide already loaded folders from select list when adding.
-* Continuously adding, removing without closing select list.
+* Continuously adding, removing without closing select list(`space` in select-list).
 * Find Git project recursively from specified directory.
+* User defined project-group(add/remove set of project by defined group).
 
 # Command
 
 * `project-folder:add`: Add project folder.
 * `project-folder:remove`: Remove project folder.
+* `project-folder:open-config`: Open user-config to define project-group as CSON format.
 
 In mini editor
 * `project-folder:replace`: Remove project except selected.
@@ -46,12 +48,34 @@ Here is training course from Basic(step-1) to step3.
 2. Type `space` key on item you want to add, and continue to add next item with `space`.
 3. Then type `tab`, selected items color change to `red` background to indicate action changed to `remove`. Then type `space` to continuously remove folder from project list.
 
-##  Replace action.
+## Replace action.
 
 1. Start `project-folder:add` from command palette or from keymap.
 2. Add multiple folder by typing `space` several times.
 3. Then type `ctrl-r` on item you want to replace.
 4. Project folders you added on 2. was replaced with only item you just replaced.
+
+## User defined project-group and open it in new-window.
+
+This tutorial assume you've cloned following git repositories to `~/github`
+
+* `atom`
+* `text-buffer`
+* `atom-keymap`
+
+1. From command paletter execute `project-folder:open-config`.
+2. Paste following text in opened editor and save it.
+```coffeescript
+groups:
+  atom: [
+    "~/github/atom"
+    "~/github/text-buffer"
+    "~/github/atom-keymap"
+  ]
+```
+3. `project-folder:add`, you can see "atom" group shows up in top of list with different icon.
+4. `enter` to confirm on `atom` group.
+5. Three directories defined in group have added!(You can also remove set of directories in same way)
 
 # Keymap
 

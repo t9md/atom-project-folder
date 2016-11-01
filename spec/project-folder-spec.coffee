@@ -361,7 +361,6 @@ describe "project-folder", ->
           {dir: gitDir3, type: 'directory'},
         ]
 
-        # it "add confirmed paths to projects 1st item", ->
         ensureProjectPaths(dirs: [], panelIsVisible: true)
         dispatchCommand(filterEditorElement, 'core:confirm')
         ensureProjectPaths(dirs: [normalDir1, normalDir2], panelIsVisible: false)
