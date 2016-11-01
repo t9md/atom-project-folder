@@ -42,13 +42,13 @@ Here is training course from Basic(step-1) to step3.
 2. Chose folder you want to add.
 3. Project folder added and listed in tree-view.
 
-## Switch action / Continuous action.
+## Switch action by `tab`, Confirm and continue with `space`.
 
 1. Start `project-folder:add` from command palette or from keymap.
 2. Type `space` key on item you want to add, and continue to add next item with `space`.
 3. Then type `tab`, selected items color change to `red` background to indicate action changed to `remove`. Then type `space` to continuously remove folder from project list.
 
-## Replace action.
+## Replace project list by `ctrl-r`.
 
 1. Start `project-folder:add` from command palette or from keymap.
 2. Add multiple folder by typing `space` several times.
@@ -70,13 +70,12 @@ groups:
   ]
 ```
 3. `project-folder:add`, you can see "atom" group shows up in top of list with different icon.
-4. `enter` to confirm on `atom` group.
-5. Three directories defined in group have added!(You can also remove set of directories in same way)
+4. `ctrl-enter` to open `atom` group in new window.
+5. Three directories defined in group have opened in new window!(You can also remove set of directories in same way)
 
 # Keymap
 
-By default, keymap set on only mini project-folder's mini editor scope.  
-This keymap is effective only while select list is shown.
+Following keymap is defined for project-folder's select-list mini editor.
 
 ```coffeescript
 '.project-folder atom-text-editor[mini]':
@@ -88,11 +87,11 @@ This keymap is effective only while select list is shown.
 
 To start `project-folder:add` or `project-folder:remove`, invoke from command pallete, or set keymap by yourself.
 
-e.g. My setting.
+e.g. My setting.(I'm not setting `project-folder:remove` since I can switch to it by `tab`)
 
 ```coffeescript
 'atom-workspace:not([mini])':
-  'ctrl-alt-p': 'project-folder:add'
+  'cmd-p': 'project-folder:add'
 ```
 
 # Config
