@@ -57,11 +57,7 @@ Here is training course from Basic(step-1) to step3.
 
 ## User defined project-group and open it in new-window.
 
-This tutorial assume you've cloned following git repositories to `~/github`
-
-* `atom`
-* `text-buffer`
-* `atom-keymap`
+This tutorial assume you've cloned git repositories `atom`, `text-buffer` and `atom-keymap` to `~/github`.
 
 1. From command paletter execute `project-folder:open-config`.
 2. Paste following text in opened editor and save it.
