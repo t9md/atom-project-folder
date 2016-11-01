@@ -9,6 +9,9 @@ wrench = require 'wrench'
 setConfig = (name, value) ->
   atom.config.set("project-folder.#{name}", value)
 
+getConfig = (name) ->
+  atom.config.get("project-folder.#{name}")
+
 getPath = (file, useTildeAsHome=false) ->
   filePath = joinPath("#{__dirname}/fixtures", file)
   path = fs.normalize(filePath)
@@ -33,11 +36,12 @@ dispatchCommand = (target, command) ->
 getProjectPaths = ->
   atom.project.getPaths()
 
+getEditor = ->
+  atom.workspace.getActiveTextEditor()
 
 # Main
 # -------------------------
 describe "project-folder", ->
-  [main, view, filterEditorElement, workspaceElement] = []
   [main, view, filterEditorElement, workspaceElement] = []
 
   # Normal
@@ -48,18 +52,18 @@ describe "project-folder", ->
 
   # Git
   gitRoot = fs.realpathSync(temp.mkdirSync('git'))
+  tempHome = fs.realpathSync(temp.mkdirSync('home'))
   gitRootSource = getPath('git')
   wrench.copyDirSyncRecursive(gitRootSource, gitRoot, forceDelete: true)
 
   gitDir1 = joinPath(gitRoot, 'dir-1')
   gitDir2 = joinPath(gitRoot, 'dir-2')
-  gitDir3 = joinPath(gitRoot, 'dir-3')
-  gitDepth2 = joinPath(gitRoot, 'dir-3/depth2')
-  gitDepth3 = joinPath(gitRoot, 'dir-3/depth2/depth3')
+  gitDir3 = joinPath(gitRoot, 'dir-3/depth2/depth3')
   fs.mkdirSync joinPath(gitRoot, 'dir-1/.git')
   fs.mkdirSync joinPath(gitRoot, 'dir-2/.git')
   fs.mkdirSync joinPath(gitRoot, 'dir-3/depth2/depth3/.git')
   gitDirs = [gitDir1, gitDir2, gitDir3]
+  gitRootDirs = [gitDir1, gitDir2, joinPath(gitRoot, 'dir-3')]
 
   addCustomMatchers = (spec) ->
     spec.addMatchers
@@ -67,6 +71,13 @@ describe "project-folder", ->
         line1 = @actual.find('div').eq(0).text()
         line2 = @actual.find('div').eq(1).text()
         (line1 is _path.basename(expected)) and (line2 is getPath(expected, true))
+
+  ensureProjectPaths = ({dirs, panelIsVisible}) ->
+    if not dirs? or not panelIsVisible?
+      throw new Error('Spec erro')
+
+    expect(getProjectPaths()).toEqual(dirs)
+    expect(view.panel.isVisible()).toBe(panelIsVisible)
 
   beforeEach ->
     addCustomMatchers(this)
@@ -96,13 +107,6 @@ describe "project-folder", ->
       view.cancel()
 
   describe "project-folder:add", ->
-    ensureProjectPaths = ({dirs, panelIsVisible}) ->
-      if not dirs? or not panelIsVisible?
-        throw new Error('Spec erro')
-
-      expect(getProjectPaths()).toEqual(dirs)
-      expect(view.panel.isVisible()).toBe(panelIsVisible)
-
     beforeEach ->
       dispatchCommand(workspaceElement, 'project-folder:add')
       expect(view).toHaveClass('add')
@@ -228,7 +232,7 @@ describe "project-folder", ->
 
     it "get directories case-2", ->
       setConfig('projectRootDirectories', [normalRoot, gitRoot])
-      expect(view.getNormalDirectories()).toEqual(normalDirs.concat(gitDirs))
+      expect(view.getNormalDirectories()).toEqual(normalDirs.concat(gitRootDirs))
 
   describe "view::getGitDirectories", ->
     describe "gitProjectDirectories config is empty(default)", ->
@@ -238,7 +242,7 @@ describe "project-folder", ->
     describe "gitProjectDirectories is set", ->
       it "return directories which contains .git", ->
         setConfig('gitProjectDirectories', [gitRoot])
-        expect(view.getGitDirectories()).toEqual([gitDir1, gitDir2, gitDepth3])
+        expect(view.getGitDirectories()).toEqual([gitDir1, gitDir2, gitDir3])
 
     describe "gitProjectSearchMaxDepth is 2", ->
       it "search .git directory 2 depth at maximum", ->
@@ -252,3 +256,125 @@ describe "project-folder", ->
       spyOn(atom, "open")
       view.openInNewWindow()
       expect(atom.open).toHaveBeenCalledWith({pathsToOpen: [normalDir1], newWindow: true})
+
+  describe "user defined project-group", ->
+    configPath = joinPath(tempHome, 'project-folder.cson')
+    userConfigEditor = null
+
+    ensureSelectListItems = (expectedItems) ->
+      items = []
+      for item in view.getItems()
+        item.dir = fs.normalize(item.dir)
+        items.push(item)
+      expect(items).toEqual(expectedItems)
+
+    beforeEach ->
+      setConfig('configPath', configPath)
+      waitsForPromise ->
+        main.openConfig()
+      runs ->
+        userConfigEditor = getEditor()
+
+    describe "user config file", ->
+      it "opens editor in configPath", ->
+        expect(userConfigEditor.getPath()).toBe(configPath)
+
+      it "load config on save", ->
+        dispatchCommand(workspaceElement, 'project-folder:add')
+        expect(view).toHaveClass('add')
+
+        ensureSelectListItems [
+          {dir: normalDir1, type: 'directory'},
+          {dir: normalDir2, type: 'directory'}
+        ]
+
+        view.cancel()
+
+        userConfigText = """
+          groups:
+            atom: [
+              "~/github/atom.org"
+              "~/github/text-buffer"
+              "~/github/atom-keymap"
+            ]
+            sample: [
+              "~/dir/hello-project"
+              "~/dir/world-project"
+            ]
+          """
+        userConfigEditor.setText(userConfigText)
+
+        expect(view.groups).toBe(null)
+        userConfigEditor.save()
+        expect(view.groups).toEqual
+          atom: [
+            "~/github/atom.org"
+            "~/github/text-buffer"
+            "~/github/atom-keymap"
+          ]
+          sample: [
+            "~/dir/hello-project"
+            "~/dir/world-project"
+          ]
+
+        dispatchCommand(workspaceElement, 'project-folder:add')
+        expect(view).toHaveClass('add')
+        ensureSelectListItems [
+          {dir: 'atom', type: 'group', dirs: view.groups.atom},
+          {dir: 'sample', type: 'group', dirs: view.groups.sample},
+          {dir: normalDir1, type: 'directory'},
+          {dir: normalDir2, type: 'directory'},
+        ]
+
+    describe "add/remove groups of project", ->
+      loadUserConfig = ->
+        userConfigText = """
+          groups:
+            sample1: [
+              "#{normalDir1}"
+              "#{normalDir2}"
+            ]
+            sample2: [
+              "#{gitDir1}"
+              "#{gitDir2}"
+            ]
+          """
+        userConfigEditor.setText(userConfigText)
+        expect(view.groups).toBe(null)
+        userConfigEditor.save()
+        expect(view.groups).not.toBe(null)
+
+      beforeEach ->
+        setConfig('gitProjectDirectories', [gitRoot])
+        loadUserConfig()
+
+      it "add/remove set of project defined in groups", ->
+        dispatchCommand(workspaceElement, 'project-folder:add')
+        expect(view).toHaveClass('add')
+        ensureSelectListItems [
+          {dir: 'sample1', type: 'group', dirs: [normalDir1, normalDir2]},
+          {dir: 'sample2', type: 'group', dirs: [gitDir1, gitDir2]},
+          {dir: normalDir1, type: 'directory'},
+          {dir: normalDir2, type: 'directory'},
+          {dir: gitDir1, type: 'directory'},
+          {dir: gitDir2, type: 'directory'},
+          {dir: gitDir3, type: 'directory'},
+        ]
+
+        # it "add confirmed paths to projects 1st item", ->
+        ensureProjectPaths(dirs: [], panelIsVisible: true)
+        dispatchCommand(filterEditorElement, 'core:confirm')
+        ensureProjectPaths(dirs: [normalDir1, normalDir2], panelIsVisible: false)
+
+        dispatchCommand(workspaceElement, 'project-folder:add')
+        dispatchCommand(filterEditorElement, 'core:move-down')
+        dispatchCommand(filterEditorElement, 'core:confirm')
+        ensureProjectPaths(dirs: [normalDir1, normalDir2, gitDir1, gitDir2], panelIsVisible: false)
+
+        dispatchCommand(workspaceElement, 'project-folder:remove')
+        dispatchCommand(filterEditorElement, 'core:confirm')
+        ensureProjectPaths(dirs: [gitDir1, gitDir2], panelIsVisible: false)
+
+        dispatchCommand(workspaceElement, 'project-folder:remove')
+        dispatchCommand(filterEditorElement, 'core:confirm')
+        ensureProjectPaths(dirs: [], panelIsVisible: false)
