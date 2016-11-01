@@ -44,6 +44,9 @@ getEditor = ->
 describe "project-folder", ->
   [main, view, filterEditorElement, workspaceElement] = []
 
+  tempHome = fs.realpathSync(temp.mkdirSync('home'))
+  configPath = joinPath(tempHome, 'project-folder.cson')
+
   # Normal
   normalRoot = getPath('normal')
   normalDir1 = getPath('normal/dir-1')
@@ -52,7 +55,6 @@ describe "project-folder", ->
 
   # Git
   gitRoot = fs.realpathSync(temp.mkdirSync('git'))
-  tempHome = fs.realpathSync(temp.mkdirSync('home'))
   gitRootSource = getPath('git')
   wrench.copyDirSyncRecursive(gitRootSource, gitRoot, forceDelete: true)
 
@@ -81,6 +83,7 @@ describe "project-folder", ->
 
   beforeEach ->
     addCustomMatchers(this)
+    setConfig('configPath', configPath)
     fixturesDir = getProjectPaths()[0]
     atom.project.removePath(fixturesDir)
 
@@ -258,7 +261,6 @@ describe "project-folder", ->
       expect(atom.open).toHaveBeenCalledWith({pathsToOpen: [normalDir1], newWindow: true})
 
   describe "user defined project-group", ->
-    configPath = joinPath(tempHome, 'project-folder.cson')
     userConfigEditor = null
 
     ensureSelectListItems = (expectedItems) ->
@@ -269,7 +271,6 @@ describe "project-folder", ->
       expect(items).toEqual(expectedItems)
 
     beforeEach ->
-      setConfig('configPath', configPath)
       waitsForPromise ->
         main.openConfig()
       runs ->
@@ -340,7 +341,6 @@ describe "project-folder", ->
             ]
           """
         userConfigEditor.setText(userConfigText)
-        expect(view.groups).toBe(null)
         userConfigEditor.save()
         expect(view.groups).not.toBe(null)
 
@@ -377,3 +377,42 @@ describe "project-folder", ->
         dispatchCommand(workspaceElement, 'project-folder:remove')
         dispatchCommand(filterEditorElement, 'core:confirm')
         ensureProjectPaths(dirs: [], panelIsVisible: false)
+
+      it "show up on removal list as long as at least one member was loaded", ->
+        addProject(normalDir1, normalDir2, gitDir1, gitDir2)
+        dispatchCommand(workspaceElement, 'project-folder:remove')
+        expect(view).toHaveClass('remove')
+
+        itemGroupSample1 = {dir: 'sample1', type: 'group', dirs: [normalDir1, normalDir2]}
+        itemGroupSample2 = {dir: 'sample2', type: 'group', dirs: [gitDir1, gitDir2]}
+        itemDirNormalDir1 = {dir: normalDir1, type: 'directory'}
+        itemDirNormalDir2 = {dir: normalDir2, type: 'directory'}
+        itemDirGitDir1 = {dir: gitDir1, type: 'directory'}
+        itemDirGitDir2 = {dir: gitDir2, type: 'directory'}
+
+        ensureSelectListItems [
+          itemGroupSample1
+          itemGroupSample2
+          itemDirNormalDir1
+          itemDirNormalDir2
+          itemDirGitDir1
+          itemDirGitDir2
+        ]
+
+        view.remove(itemDirNormalDir1)
+        view.remove(itemDirGitDir1)
+        ensureSelectListItems [
+          itemGroupSample1
+          itemGroupSample2
+          itemDirNormalDir2
+          itemDirGitDir2
+        ]
+
+        view.remove(itemDirGitDir2)
+        ensureSelectListItems [
+          itemGroupSample1
+          itemDirNormalDir2
+        ]
+
+        view.remove(itemDirNormalDir2)
+        ensureSelectListItems []
