@@ -1,4 +1,4 @@
-{SelectListView, $$} = require 'atom-space-pen-views'
+{SelectListView, $, $$} = require 'atom-space-pen-views'
 fs = require 'fs-plus'
 _ = require 'underscore-plus'
 _path = require 'path'
@@ -13,6 +13,12 @@ getPathDepth = (path) ->
 
 isGitRepository = (path) ->
   fs.isDirectorySync _path.join(path, '.git')
+
+# Check if contained by deep compaison
+isContained = (items, target) ->
+  for item in items when _.isEqual(item, target)
+    return true
+  false
 
 # Copied & modified from fuzzy-finder's code.
 highlightMatches = (context, path, matches, offsetIndex=0) ->
@@ -79,26 +85,23 @@ class View extends SelectListView
       items
 
   getItems: ->
-    items = []
-
-    loadedDirs = atom.project.getPaths()
     switch @action
       when 'add'
-        items.push(@getItemsForGroups()...)
+        groups = @getItemsForGroups()
         dirs = _.uniq([@getNormalDirectories()..., @getGitDirectories()...])
+
         if settings.get('hideLoadedFolderFromAddList')
-          dirs = _.reject(dirs, (dir) -> dir in loadedDirs)
+          groups = _.reject(groups, @allGroupMemberIsLoaded.bind(this))
+          dirs = _.reject(dirs, @isInProjectList.bind(this))
+
       when 'remove'
-        for item in @getItemsForGroups()
-          # We show group if at least one dir was loaded fom the group.
-          if item.dirs.some((dir) -> fs.normalize(dir) in loadedDirs)
-            items.push(item)
-        dirs = loadedDirs
+        # We show group if at least one dir was loaded fom the group.
+        groups = @getItemsForGroups().filter(@someGroupMemberIsLoaded.bind(this))
+        dirs = atom.project.getPaths()
 
     homeDir = fs.getHomeDirectory()
-    for dir in dirs
-      items.push(dir: dir.replace(homeDir, '~'), type: "directory")
-    items
+    dirs = dirs.map (dir) -> {dir: dir.replace(homeDir, '~'), type: "directory"}
+    [groups..., dirs...]
 
   getNormalDirectories: ->
     dirs = []
@@ -136,15 +139,30 @@ class View extends SelectListView
     @panel.show()
     @focusFilterEditor()
 
+  someGroupMemberIsLoaded: (groupItem) ->
+    groupItem.dirs.some (dir) =>
+      @isInProjectList(dir)
+
+  allGroupMemberIsLoaded: (groupItem) ->
+    groupItem.dirs.every (dir) =>
+      @isInProjectList(dir)
+
+  isInProjectList: (dir) ->
+    fs.normalize(dir) in atom.project.getPaths()
+
   confirmAndContinue: ->
     selectedItem = @getSelectedItem()
     return unless selectedItem?
     this[@action](selectedItem)
 
-    selectedItemView = @getSelectedItemView()
-    @selectNextItemView()
-    selectedItemView.remove()
-    @items = @items.filter (item) -> item isnt selectedItem
+    @items = @getItems()
+    # Sync select-list to underlying model(@items)
+    @list.find('li').each (i, element) =>
+      view = $(element)
+      item = view.data('select-list-item')
+      unless isContained(@items, item)
+        @selectNextItemView() if view.hasClass('selected')
+        view.remove()
 
   confirmed: (item) ->
     this[@action](item)

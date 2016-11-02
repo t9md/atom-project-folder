@@ -67,6 +67,14 @@ describe "project-folder", ->
   gitDirs = [gitDir1, gitDir2, gitDir3]
   gitRootDirs = [gitDir1, gitDir2, joinPath(gitRoot, 'dir-3')]
 
+  itemGroupNormal = {dir: 'normal', type: 'group', dirs: [normalDir1, normalDir2]}
+  itemGroupGit = {dir: 'git', type: 'group', dirs: [gitDir1, gitDir2]}
+  itemDirNormalDir1 = {dir: normalDir1, type: 'directory'}
+  itemDirNormalDir2 = {dir: normalDir2, type: 'directory'}
+  itemDirGitDir1 = {dir: gitDir1, type: 'directory'}
+  itemDirGitDir2 = {dir: gitDir2, type: 'directory'}
+  itemDirGitDir3 = {dir: gitDir3, type: 'directory'}
+
   addCustomMatchers = (spec) ->
     spec.addMatchers
       toBeEqualItem: (expected) ->
@@ -190,16 +198,16 @@ describe "project-folder", ->
 
   describe "view::add", ->
     it "add directory to project", ->
-      view.add(dir: normalDir1, type: 'directory')
-      view.add(dir: normalDir2, type: 'directory')
+      view.add(itemDirNormalDir1)
+      view.add(itemDirNormalDir2)
       expect(getProjectPaths()).toEqual([normalDir1, normalDir2])
 
   describe "view::remove", ->
     it "remove directory from project", ->
       addProject(normalDir1, normalDir2)
-      view.remove(dir: normalDir1, type: 'directory')
+      view.remove(itemDirNormalDir1)
       expect(getProjectPaths()).toEqual [normalDir2]
-      view.remove(dir: normalDir2, type: 'directory')
+      view.remove(itemDirNormalDir2)
       expect(getProjectPaths()).toEqual []
 
   describe "closeItemsForRemovedProject", ->
@@ -217,14 +225,14 @@ describe "project-folder", ->
         expect(files).toEqual([file1, file2])
 
     it "close editor for removed project", ->
-      view.remove(dir: normalDir2, type: 'directory')
+      view.remove(itemDirNormalDir2)
       files = atom.workspace.getTextEditors().map (e) -> e.getPath()
       expect(files).toEqual([file1])
 
   describe "view::replace", ->
     it "remove all project except passed one", ->
       addProject(normalDir1, normalDir2)
-      spyOn(view, "getSelectedItem").andReturn(dir: gitDir1, type: 'directory')
+      spyOn(view, "getSelectedItem").andReturn(itemDirGitDir1)
       view.replace()
       expect(getProjectPaths()).toEqual([gitDir1])
 
@@ -255,7 +263,7 @@ describe "project-folder", ->
 
   describe "view::openInNewWindow", ->
     it "open selected project in new window", ->
-      spyOn(view, "getSelectedItem").andReturn(dir: normalDir1, type: 'directory')
+      spyOn(view, "getSelectedItem").andReturn(itemDirNormalDir1)
       spyOn(atom, "open")
       view.openInNewWindow()
       expect(atom.open).toHaveBeenCalledWith({pathsToOpen: [normalDir1], newWindow: true})
@@ -285,62 +293,56 @@ describe "project-folder", ->
         expect(view).toHaveClass('add')
 
         ensureSelectListItems [
-          {dir: normalDir1, type: 'directory'},
-          {dir: normalDir2, type: 'directory'}
+          itemDirNormalDir1
+          itemDirNormalDir2
         ]
 
         view.cancel()
-
-        userConfigText = """
+        expect(view.groups).toBe(null)
+        userConfigEditor.setText """
           groups:
             atom: [
               "~/github/atom.org"
               "~/github/text-buffer"
               "~/github/atom-keymap"
             ]
-            sample: [
+            hello: [
               "~/dir/hello-project"
               "~/dir/world-project"
             ]
           """
-        userConfigEditor.setText(userConfigText)
-
-        expect(view.groups).toBe(null)
         userConfigEditor.save()
-        expect(view.groups).toEqual
-          atom: [
-            "~/github/atom.org"
-            "~/github/text-buffer"
-            "~/github/atom-keymap"
-          ]
-          sample: [
-            "~/dir/hello-project"
-            "~/dir/world-project"
-          ]
+
+        atomGroupDirs = ["~/github/atom.org", "~/github/text-buffer", "~/github/atom-keymap"]
+        helloGroupDirs = ["~/dir/hello-project", "~/dir/world-project"]
+
+        expect(view.groups).toEqual(atom: atomGroupDirs, hello: helloGroupDirs)
+
+        itemGroupAtom = {dir: 'atom', type: 'group', dirs: atomGroupDirs}
+        itemGroupHello = {dir: 'hello', type: 'group', dirs: helloGroupDirs}
 
         dispatchCommand(workspaceElement, 'project-folder:add')
         expect(view).toHaveClass('add')
         ensureSelectListItems [
-          {dir: 'atom', type: 'group', dirs: view.groups.atom},
-          {dir: 'sample', type: 'group', dirs: view.groups.sample},
-          {dir: normalDir1, type: 'directory'},
-          {dir: normalDir2, type: 'directory'},
+          itemGroupAtom
+          itemGroupHello
+          itemDirNormalDir1
+          itemDirNormalDir2
         ]
 
     describe "add/remove groups of project", ->
       loadUserConfig = ->
-        userConfigText = """
+        userConfigEditor.setText """
           groups:
-            sample1: [
+            normal: [
               "#{normalDir1}"
               "#{normalDir2}"
             ]
-            sample2: [
+            git: [
               "#{gitDir1}"
               "#{gitDir2}"
             ]
           """
-        userConfigEditor.setText(userConfigText)
         userConfigEditor.save()
         expect(view.groups).not.toBe(null)
 
@@ -352,65 +354,99 @@ describe "project-folder", ->
         dispatchCommand(workspaceElement, 'project-folder:add')
         expect(view).toHaveClass('add')
         ensureSelectListItems [
-          {dir: 'sample1', type: 'group', dirs: [normalDir1, normalDir2]},
-          {dir: 'sample2', type: 'group', dirs: [gitDir1, gitDir2]},
-          {dir: normalDir1, type: 'directory'},
-          {dir: normalDir2, type: 'directory'},
-          {dir: gitDir1, type: 'directory'},
-          {dir: gitDir2, type: 'directory'},
-          {dir: gitDir3, type: 'directory'},
+          itemGroupNormal
+          itemGroupGit
+          itemDirNormalDir1
+          itemDirNormalDir2
+          itemDirGitDir1
+          itemDirGitDir2
+          itemDirGitDir3
         ]
 
+        # Confirm group 'normal'
         ensureProjectPaths(dirs: [], panelIsVisible: true)
         dispatchCommand(filterEditorElement, 'core:confirm')
         ensureProjectPaths(dirs: [normalDir1, normalDir2], panelIsVisible: false)
 
+        # Confirm group 'git'
         dispatchCommand(workspaceElement, 'project-folder:add')
-        dispatchCommand(filterEditorElement, 'core:move-down')
         dispatchCommand(filterEditorElement, 'core:confirm')
         ensureProjectPaths(dirs: [normalDir1, normalDir2, gitDir1, gitDir2], panelIsVisible: false)
 
+        # Remove group 'normal'
         dispatchCommand(workspaceElement, 'project-folder:remove')
         dispatchCommand(filterEditorElement, 'core:confirm')
         ensureProjectPaths(dirs: [gitDir1, gitDir2], panelIsVisible: false)
 
+        # Remove group 'git'
         dispatchCommand(workspaceElement, 'project-folder:remove')
         dispatchCommand(filterEditorElement, 'core:confirm')
         ensureProjectPaths(dirs: [], panelIsVisible: false)
+
+      it "by default(hideLoadedFolderFromAddList is true) hide from add list if all member is already loaded", ->
+        dispatchCommand(workspaceElement, 'project-folder:add')
+        expect(view).toHaveClass('add')
+
+        ensureSelectListItems [
+          itemGroupNormal
+          itemGroupGit
+          itemDirNormalDir1, itemDirNormalDir2
+          itemDirGitDir1, itemDirGitDir2
+          itemDirGitDir3
+        ]
+
+        view.add(itemDirNormalDir1)
+        ensureSelectListItems [
+          itemGroupNormal
+          itemGroupGit
+          itemDirNormalDir2
+          itemDirGitDir1, itemDirGitDir2
+          itemDirGitDir3
+        ]
+
+        view.add(itemDirNormalDir2)
+        ensureSelectListItems [
+          itemGroupGit
+          itemDirGitDir1, itemDirGitDir2
+          itemDirGitDir3
+        ]
+
+        view.add(itemDirGitDir1)
+        ensureSelectListItems [
+          itemGroupGit
+          itemDirGitDir2
+          itemDirGitDir3
+        ]
+
+        view.add(itemDirGitDir2)
+        ensureSelectListItems [
+          itemDirGitDir3
+        ]
 
       it "show up on removal list as long as at least one member was loaded", ->
         addProject(normalDir1, normalDir2, gitDir1, gitDir2)
         dispatchCommand(workspaceElement, 'project-folder:remove')
         expect(view).toHaveClass('remove')
 
-        itemGroupSample1 = {dir: 'sample1', type: 'group', dirs: [normalDir1, normalDir2]}
-        itemGroupSample2 = {dir: 'sample2', type: 'group', dirs: [gitDir1, gitDir2]}
-        itemDirNormalDir1 = {dir: normalDir1, type: 'directory'}
-        itemDirNormalDir2 = {dir: normalDir2, type: 'directory'}
-        itemDirGitDir1 = {dir: gitDir1, type: 'directory'}
-        itemDirGitDir2 = {dir: gitDir2, type: 'directory'}
-
         ensureSelectListItems [
-          itemGroupSample1
-          itemGroupSample2
-          itemDirNormalDir1
-          itemDirNormalDir2
-          itemDirGitDir1
-          itemDirGitDir2
+          itemGroupNormal
+          itemGroupGit
+          itemDirNormalDir1, itemDirNormalDir2
+          itemDirGitDir1, itemDirGitDir2
         ]
 
         view.remove(itemDirNormalDir1)
         view.remove(itemDirGitDir1)
         ensureSelectListItems [
-          itemGroupSample1
-          itemGroupSample2
+          itemGroupNormal
+          itemGroupGit
           itemDirNormalDir2
           itemDirGitDir2
         ]
 
         view.remove(itemDirGitDir2)
         ensureSelectListItems [
-          itemGroupSample1
+          itemGroupNormal
           itemDirNormalDir2
         ]
 
