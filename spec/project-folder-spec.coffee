@@ -1,6 +1,7 @@
 _path = require 'path'
 
 fs = require 'fs-plus'
+{normalize} = fs
 temp = require 'temp'
 wrench = require 'wrench'
 
@@ -12,13 +13,8 @@ setConfig = (name, value) ->
 getConfig = (name) ->
   atom.config.get("project-folder.#{name}")
 
-getPath = (file, useTildeAsHome=false) ->
-  filePath = joinPath("#{__dirname}/fixtures", file)
-  path = fs.normalize(filePath)
-  if useTildeAsHome
-    path.replace(fs.getHomeDirectory(), '~')
-  else
-    path
+getPath = (file) ->
+  normalize(joinPath("#{__dirname}/fixtures", file))
 
 addProject = (dirs...) ->
   atom.project.addPath(dir) for dir in dirs
@@ -67,20 +63,20 @@ describe "project-folder", ->
   gitDirs = [gitDir1, gitDir2, gitDir3]
   gitRootDirs = [gitDir1, gitDir2, joinPath(gitRoot, 'dir-3')]
 
-  itemGroupNormal = {dir: 'normal', type: 'group', dirs: [normalDir1, normalDir2]}
-  itemGroupGit = {dir: 'git', type: 'group', dirs: [gitDir1, gitDir2]}
-  itemDirNormalDir1 = {dir: normalDir1, type: 'directory'}
-  itemDirNormalDir2 = {dir: normalDir2, type: 'directory'}
-  itemDirGitDir1 = {dir: gitDir1, type: 'directory'}
-  itemDirGitDir2 = {dir: gitDir2, type: 'directory'}
-  itemDirGitDir3 = {dir: gitDir3, type: 'directory'}
+  itemGroupNormal = {name: 'normal', dirs: [normalDir1, normalDir2]}
+  itemGroupGit = {name: 'git', dirs: [gitDir1, gitDir2]}
+  itemDirNormalDir1 = {name: normalDir1, dirs: [normalDir1]}
+  itemDirNormalDir2 = {name: normalDir2, dirs: [normalDir2]}
+  itemDirGitDir1 = {name: gitDir1, dirs: [gitDir1]}
+  itemDirGitDir2 = {name: gitDir2, dirs: [gitDir2]}
+  itemDirGitDir3 = {name: gitDir3, dirs: [gitDir3]}
 
   addCustomMatchers = (spec) ->
     spec.addMatchers
       toBeEqualItem: (expected) ->
         line1 = @actual.find('div').eq(0).text()
         line2 = @actual.find('div').eq(1).text()
-        (line1 is _path.basename(expected)) and (line2 is getPath(expected, true))
+        (line1 is _path.basename(expected)) and (normalize(line2) is getPath(expected))
 
   ensureProjectPaths = ({dirs, panelIsVisible}) ->
     if not dirs? or not panelIsVisible?
@@ -274,7 +270,7 @@ describe "project-folder", ->
     ensureSelectListItems = (expectedItems) ->
       items = []
       for item in view.getItems()
-        item.dir = fs.normalize(item.dir)
+        item.name = normalize(item.name)
         items.push(item)
       expect(items).toEqual(expectedItems)
 
@@ -318,8 +314,8 @@ describe "project-folder", ->
 
         expect(view.groups).toEqual(atom: atomGroupDirs, hello: helloGroupDirs)
 
-        itemGroupAtom = {dir: 'atom', type: 'group', dirs: atomGroupDirs}
-        itemGroupHello = {dir: 'hello', type: 'group', dirs: helloGroupDirs}
+        itemGroupAtom = {name: 'atom', dirs: atomGroupDirs.map(normalize)}
+        itemGroupHello = {name: 'hello', dirs: helloGroupDirs.map(normalize)}
 
         dispatchCommand(workspaceElement, 'project-folder:add')
         expect(view).toHaveClass('add')

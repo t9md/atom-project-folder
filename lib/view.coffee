@@ -1,5 +1,6 @@
 {SelectListView, $, $$} = require 'atom-space-pen-views'
 fs = require 'fs-plus'
+{normalize} = fs
 _ = require 'underscore-plus'
 _path = require 'path'
 {match} = require 'fuzzaldrin'
@@ -56,33 +57,33 @@ class View extends SelectListView
     this
 
   viewForItem: (item) ->
-    matches = match(item.dir, @getFilterQuery())
-    iconName = switch item.type
-      when 'group' then 'briefcase'
-      when 'directory' then 'repo'
+    name = item.name
+    if item.dirs.length > 1 # isGroup
+      iconName = 'briefcase'
+      basename = name
+    else
+      iconName = 'repo'
+      basename = _path.basename(name)
 
-    basename = _path.basename(item.dir)
+    matches = match(name, @getFilterQuery())
     $$ ->
-      baseOffset = item.dir.length - basename.length
+      baseOffset = name.length - basename.length
       @li class: 'two-lines', =>
-        @div {class: "primary-line file icon icon-#{iconName}", 'data-name': basename, 'data-path': item.dir}, =>
+        @div {class: "primary-line file icon icon-#{iconName}"}, =>
           highlightMatches(this, basename, matches, baseOffset)
         @div {class: 'secondary-line path no-icon'}, =>
-          highlightMatches(this, item.dir, matches)
+          highlightMatches(this, name, matches)
 
   getFilterKey: ->
-    "dir"
+    'name'
 
   setGroups: (@groups) ->
     @itemsForGroups = null # invalidate cache
 
   getItemsForGroups: ->
     @itemsForGroups ?= do =>
-      items = []
-      for groupName, dirs of @groups when _.isArray(dirs)
-        item = {dir: groupName, type: "group", dirs: dirs}
-        items.push(item)
-      items
+      for name, dirs of @groups when _.isArray(dirs)
+        {name, dirs: dirs.map(normalize)}
 
   getItems: ->
     switch @action
@@ -95,19 +96,19 @@ class View extends SelectListView
           dirs = _.reject(dirs, @isInProjectList.bind(this))
 
       when 'remove'
-        # We show group if at least one dir was loaded fom the group.
+        # We show group if at least one dir was loaded from the group.
         groups = @getItemsForGroups().filter(@someGroupMemberIsLoaded.bind(this))
         dirs = atom.project.getPaths()
 
-    homeDir = fs.getHomeDirectory()
-    dirs = dirs.map (dir) -> {dir: dir.replace(homeDir, '~'), type: "directory"}
+    home = fs.getHomeDirectory()
+    dirs = dirs.map (dir) -> {name: dir.replace(home, '~'), dirs: [dir]}
     [groups..., dirs...]
 
   getNormalDirectories: ->
     dirs = []
-    for dir in settings.get('projectRootDirectories')
-      for path in fs.listSync(fs.normalize(dir)) when fs.isDirectorySync(path)
-        dirs.push(path)
+    for rootDir in settings.get('projectRootDirectories')
+      for dir in fs.listSync(normalize(rootDir)) when fs.isDirectorySync(dir)
+        dirs.push(dir)
     dirs
 
   getGitDirectories: ->
@@ -115,7 +116,7 @@ class View extends SelectListView
 
     dirs = []
     for dir in settings.get('gitProjectDirectories')
-      dir = fs.normalize(dir)
+      dir = normalize(dir)
       continue unless fs.isDirectorySync(dir)
 
       baseDepth = getPathDepth(dir)
@@ -148,7 +149,7 @@ class View extends SelectListView
       @isInProjectList(dir)
 
   isInProjectList: (dir) ->
-    fs.normalize(dir) in atom.project.getPaths()
+    normalize(dir) in atom.project.getPaths()
 
   confirmAndContinue: ->
     selectedItem = @getSelectedItem()
@@ -186,62 +187,37 @@ class View extends SelectListView
   # Add
   # -------------------------
   add: (item) ->
-    switch item.type
-      when 'group'
-        type = "directory"
-        @add({dir, type}) for dir in item.dirs
-
-      when 'directory'
-        dir = fs.normalize(item.dir)
-        if fs.isDirectorySync(dir)
-          atom.project.addPath(dir)
+    for dir in item.dirs
+      dir = normalize(dir)
+      if fs.isDirectorySync(dir)
+        atom.project.addPath(dir)
 
   # Remove
   # -------------------------
   remove: (item) ->
-    switch item.type
-      when 'group'
-        type = "directory"
-        @remove({dir, type}) for dir in item.dirs
+    for dir in item.dirs
+      dir = normalize(dir)
+      if settings.get('closeItemsForRemovedProject')
+        if directory = _.detect(atom.project.getDirectories(), (d) -> d.getPath() is dir)
+          # In case group is passed to remove, it might included non existing directory
+          # E.g gropus inluding three directory, but one directory is already unloaded.
+          editors = atom.workspace.getTextEditors()
+          for editor in editors when directory.contains(editor.getPath())
+            editor.destroy()
 
-      when 'directory'
-        dir = fs.normalize(item.dir)
-        if settings.get('closeItemsForRemovedProject')
-          if directory = _.detect(atom.project.getDirectories(), (d) -> d.getPath() is dir)
-            # In case group is passed to remove, it might included non existing directory
-            # E.g gropus inluding three directory, but one directory is already unloaded.
-            editors = atom.workspace.getTextEditors()
-            for editor in editors when directory.contains(editor.getPath())
-              editor.destroy()
-
-        atom.project.removePath(dir)
+      atom.project.removePath(dir)
 
   # Replace
   # -------------------------
   replace: ->
     item = @getSelectedItem()
     @add(item)
-
-    switch item.type
-      when 'directory'
-        dirs = [fs.normalize(item.dir)]
-      when 'group'
-        dirs = (fs.normalize(dir) for dir in item.dirs)
-
-    type = 'directory'
-    for dir in atom.project.getPaths() when dir not in dirs
-      @remove({dir, type})
+    for dir in atom.project.getPaths() when dir not in item.dirs
+      @remove(name: 'fake', dirs: [dir])
     @cancel()
 
   # Open in new window
   # -------------------------
   openInNewWindow: ->
-    item = @getSelectedItem()
-    switch item.type
-      when 'directory'
-        dirs = [fs.normalize(item.dir)]
-      when 'group'
-        dirs = (fs.normalize(dir) for dir in item.dirs)
-
-    atom.open(pathsToOpen: dirs, newWindow: true)
+    atom.open(pathsToOpen: @getSelectedItem().dirs, newWindow: true)
     @cancel()
