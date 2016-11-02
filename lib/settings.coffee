@@ -5,6 +5,14 @@ class Settings
     for name, i in Object.keys(@config)
       @config[name].order = i
 
+    # Automatically infer and inject `type` of each config parameter.
+    for key, object of @config
+      object.type = switch
+        when Number.isInteger(object.default) then 'integer'
+        when typeof(object.default) is 'boolean' then 'boolean'
+        when typeof(object.default) is 'string' then 'string'
+        when Array.isArray(object.default) then 'array'
+
   get: (param) ->
     atom.config.get "#{@scope}.#{param}"
 
@@ -13,30 +21,22 @@ class Settings
 
 module.exports = new Settings 'project-folder',
   projectRootDirectories:
-    type: 'array'
-    items:
-      type: 'string'
     default: [atom.config.get('core.projectHome')]
+    items: type: 'string'
     description: 'Comma separated list of directries to search project dir. e.g `~/.atom/packages, ~/github`'
   gitProjectDirectories:
-    type: 'array'
-    items:
-      type: 'string'
     default: []
+    items: type: 'string'
     description: 'Find git project recursively from directories listed here'
   gitProjectSearchMaxDepth:
-    type:    'integer'
-    min:     0
     default: 5
+    min: 0
   hideLoadedFolderFromAddList:
-    type: 'boolean'
     default: true
     description: 'Hide already added folders from list when adding.'
   closeItemsForRemovedProject:
-    type: 'boolean'
     default: false
     description: 'close editor when containing project was removed'
   configPath:
-    type: 'string'
     default: path.join(atom.getConfigDirPath(), 'project-folder.cson')
     description: 'filePath for user word group'
