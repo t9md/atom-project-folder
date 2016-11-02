@@ -1,6 +1,5 @@
 _ = require 'underscore-plus'
-fs = require 'fs-plus'
-{normalize} = fs
+{normalize, isDirectorySync, listSync, traverseTreeSync} = require 'fs-plus'
 _path = require 'path'
 
 # Utils
@@ -8,8 +7,8 @@ _path = require 'path'
 getPathDepth = (path) ->
   path.split(_path.sep).length
 
-isGitRepository = (path) ->
-  fs.isDirectorySync _path.join(path, '.git')
+isGitRepository = (dir) ->
+  isDirectorySync(_path.join(dir, '.git'))
 
 # Check if contained by deep compaison
 isContained = (items, target) ->
@@ -21,10 +20,10 @@ isInProjectList = (dir) ->
   dir in atom.project.getPaths()
 
 someGroupMemberIsLoaded = ({dirs}) ->
-  dirs.some (dir) -> isInProjectList(dir)
+  dirs.some(isInProjectList)
 
 allGroupMemberIsLoaded = ({dirs}) ->
-  dirs.every (dir) -> isInProjectList(dir)
+  dirs.every(isInProjectList)
 
 # Copied & modified from fuzzy-finder's code.
 highlightMatches = (context, path, matches, offsetIndex=0) ->
@@ -47,19 +46,15 @@ highlightMatches = (context, path, matches, offsetIndex=0) ->
 
 getNormalDirectories = (rootDirs) ->
   dirs = []
-  for rootDir in rootDirs
-    for dir in fs.listSync(normalize(rootDir)) when fs.isDirectorySync(dir)
-      dirs.push(dir)
+  for rootDir in rootDirs.map(normalize)
+    dirs.push(dir) for dir in listSync(rootDir) when isDirectorySync(dir)
   dirs
 
 getGitDirectories = (rootDirs, maxDepth) ->
   dirs = []
-  for dir in rootDirs
-    dir = normalize(dir)
-    continue unless fs.isDirectorySync(dir)
-
-    baseDepth = getPathDepth(dir)
-    fs.traverseTreeSync dir, (->), (path) ->
+  for rootDir in rootDirs.map(normalize) when isDirectorySync(rootDir)
+    baseDepth = getPathDepth(rootDir)
+    traverseTreeSync rootDir, (->), (path) ->
       if (getPathDepth(path) - baseDepth) > maxDepth
         false
       else

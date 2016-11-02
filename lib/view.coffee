@@ -143,7 +143,7 @@ class View extends SelectListView
   remove: (dirs...) ->
     for dir in dirs
       atom.project.removePath(dir)
-      
+
       if settings.get('closeItemsForRemovedProject')
         editors = atom.workspace.getTextEditors()
         for editor in editors when editor.getPath()?.startsWith?(dir)
