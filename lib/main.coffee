@@ -1,5 +1,4 @@
 fs = require 'fs-plus'
-CSON = require 'season'
 {CompositeDisposable} = require 'atom'
 settings = require './settings'
 
@@ -21,7 +20,6 @@ module.exports =
 
   activate: ->
     @view = new (require './view')
-    @loadGroups() # set @view.groups.
     @subscriptions = new CompositeDisposable
     @subscriptions.add atom.commands.add 'atom-workspace',
       'project-folder:add': => @view.start('add')
@@ -33,31 +31,13 @@ module.exports =
     @view?.destroy?()
     {@subscriptions, @view} = {}
 
-  readConfig: ->
-    config = {}
-
-    filePath = @getConfigPath()
-    return config unless fs.existsSync(filePath)
-
-    try
-      config = CSON.readFileSync(filePath) or {}
-    catch error
-      atom.notifications.addError('[project-folder] config file has error', detail: error.message)
-    config
-
-  getConfigPath: ->
-    fs.normalize(settings.get('configPath'))
-
-  loadGroups: ->
-    if groups = @readConfig().groups
-      @view.setGroups(groups)
-
   openConfig: ->
-    filePath = @getConfigPath()
+    filePath = @view.getConfigPath()
 
     atom.workspace.open(filePath, searchAllPanes: true).then (editor) =>
       unless fs.existsSync(filePath)
         editor.setText(configTemplate)
         editor.save()
+
       @subscriptions.add editor.onDidSave =>
-        @loadGroups()
+        @view.loadConfig()

@@ -1,3 +1,8 @@
+## 1.1.0
+- Improve: `confirm-and-continue` immediately sync select-list item to underlying model.
+  - e.g. When all directory was removed from project-list, immediately remove corresponding group from select-list.
+- New: `set-to-top-of-projects`(`ctrl-t` in select-list) command to move selectedItem to top-of-project-list.
+
 ## 1.0.0
 - New: Support user defined project-group(add/remove set of project). See README.md for how-to-use. #5
 

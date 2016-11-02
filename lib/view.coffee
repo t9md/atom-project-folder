@@ -1,7 +1,7 @@
 {SelectListView, $, $$} = require 'atom-space-pen-views'
 _ = require 'underscore-plus'
-fs = require 'fs-plus'
-{normalize} = fs
+CSON = require 'season'
+{normalize, getHomeDirectory, isDirectorySync, existsSync} = require 'fs-plus'
 _path = require 'path'
 {match} = require 'fuzzaldrin'
 
@@ -29,8 +29,10 @@ class View extends SelectListView
       'project-folder:switch-action': => @switchAction()
       'project-folder:confirm-and-continue': => @confirmAndContinue()
       'project-folder:open-in-new-window': => @openInNewWindow()
+      'project-folder:set-to-top-of-projects': => @setToTopOfProjects()
 
     @panel ?= atom.workspace.addModalPanel(item: this, visible: false)
+    @loadConfig()
     this
 
   getNormalDirectories: ->
@@ -83,7 +85,7 @@ class View extends SelectListView
         groups = @getItemsForGroups().filter(someGroupMemberIsLoaded)
         dirs = atom.project.getPaths()
 
-    home = fs.getHomeDirectory()
+    home = getHomeDirectory()
     dirs = dirs.map (dir) -> {name: dir.replace(home, '~'), dirs: [dir]}
     [groups..., dirs...]
 
@@ -100,8 +102,7 @@ class View extends SelectListView
     @focusFilterEditor()
 
   confirmAndContinue: ->
-    selectedItem = @getSelectedItem()
-    return unless selectedItem?
+    return unless selectedItem = @getSelectedItem()
     this[@action](selectedItem.dirs...)
 
     @items = @getItems()
@@ -135,7 +136,7 @@ class View extends SelectListView
   # Add
   # -------------------------
   add: (dirs...) ->
-    for dir in dirs when fs.isDirectorySync(dir)
+    for dir in dirs when isDirectorySync(dir)
       atom.project.addPath(dir)
 
   # Remove
@@ -152,7 +153,8 @@ class View extends SelectListView
   # Replace
   # -------------------------
   replace: ->
-    item = @getSelectedItem()
+    return unless item = @getSelectedItem()
+
     @add(item.dirs...)
     @remove(_.without(atom.project.getPaths(), item.dirs...)...)
     @cancel()
@@ -160,5 +162,37 @@ class View extends SelectListView
   # Open in new window
   # -------------------------
   openInNewWindow: ->
-    atom.open(pathsToOpen: @getSelectedItem().dirs, newWindow: true)
+    return unless item = @getSelectedItem()
+
+    atom.open(pathsToOpen: item.dirs, newWindow: true)
     @cancel()
+
+  setToTopOfProjects: ->
+    return unless item = @getSelectedItem()
+
+    loadedDirs = atom.project.getPaths()
+    atom.project.removePath(dir) for dir in loadedDirs
+    @add([item.dirs..., loadedDirs...]...)
+    @cancel()
+
+  # User config
+  # -------------------------
+  loadConfig: ->
+    config = @readConfig()
+    if config.groups?
+      @setGroups(config.groups)
+
+  getConfigPath: ->
+    normalize(settings.get('configPath'))
+
+  readConfig: ->
+    config = {}
+
+    filePath = @getConfigPath()
+    return config unless existsSync(filePath)
+
+    try
+      config = CSON.readFileSync(filePath) or {}
+    catch error
+      atom.notifications.addError('[project-folder] config file has error', detail: error.message)
+    config

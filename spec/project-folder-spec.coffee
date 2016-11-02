@@ -451,3 +451,24 @@ describe "project-folder", ->
 
         view.remove(normalDir2)
         ensureSelectListItems []
+
+  describe "project-folder:set-to-top-of-projects", ->
+    originalProjects = [normalDir1, normalDir2, gitDir1, gitDir2, gitDir3]
+    beforeEach ->
+      addProject(originalProjects...)
+      expect(getProjectPaths()).toEqual(originalProjects)
+
+    it "move selected directory or directories(group) to top of project-list", ->
+      spyOn(view, "getSelectedItem").andReturn(itemDirGitDir1)
+      view.setToTopOfProjects()
+      expect(getProjectPaths()).toEqual([gitDir1, normalDir1, normalDir2, gitDir2, gitDir3])
+      jasmine.unspy(view, 'getSelectedItem')
+
+      spyOn(view, "getSelectedItem").andReturn(itemDirNormalDir2)
+      view.setToTopOfProjects()
+      expect(getProjectPaths()).toEqual([normalDir2, gitDir1, normalDir1, gitDir2, gitDir3])
+      jasmine.unspy(view, 'getSelectedItem')
+
+      spyOn(view, "getSelectedItem").andReturn(itemGroupGit)
+      view.setToTopOfProjects()
+      expect(getProjectPaths()).toEqual([gitDir1, gitDir2, normalDir2, normalDir1, gitDir3])

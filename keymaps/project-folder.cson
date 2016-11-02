@@ -3,3 +3,4 @@
   'tab': 'project-folder:switch-action'
   'space': 'project-folder:confirm-and-continue'
   'ctrl-enter': 'project-folder:open-in-new-window'
+  'ctrl-t': 'project-folder:set-to-top-of-projects'
