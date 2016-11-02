@@ -67,14 +67,6 @@ getGitDirectories = (rootDirs, maxDepth) ->
         true
   dirs
 
-addProjects = (dirs...) ->
-  for dir in dirs when fs.isDirectorySync(dir)
-    atom.project.addPath(dir)
-
-removeProjects = (dirs...) ->
-  for dir in dirs
-    atom.project.removePath(dir)
-
 module.exports = {
   isContained
   isInProjectList
@@ -83,6 +75,4 @@ module.exports = {
   highlightMatches
   getNormalDirectories
   getGitDirectories
-  addProjects
-  removeProjects
 }

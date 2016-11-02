@@ -14,8 +14,6 @@ settings = require './settings'
   highlightMatches
   getNormalDirectories
   getGitDirectories
-  addProjects
-  removeProjects
 } = require './utils'
 
 module.exports =
@@ -137,15 +135,17 @@ class View extends SelectListView
   # Add
   # -------------------------
   add: (dirs...) ->
-    addProjects(dirs...)
+    for dir in dirs when fs.isDirectorySync(dir)
+      atom.project.addPath(dir)
 
   # Remove
   # -------------------------
   remove: (dirs...) ->
-    removeProjects(dirs...)
-    if settings.get('closeItemsForRemovedProject')
-      editors = atom.workspace.getTextEditors()
-      for dir in dirs
+    for dir in dirs
+      atom.project.removePath(dir)
+      
+      if settings.get('closeItemsForRemovedProject')
+        editors = atom.workspace.getTextEditors()
         for editor in editors when editor.getPath()?.startsWith?(dir)
           editor.destroy()
 
