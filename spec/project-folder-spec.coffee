@@ -78,12 +78,8 @@ describe "project-folder", ->
         line2 = @actual.find('div').eq(1).text()
         (line1 is _path.basename(expected)) and (normalize(line2) is getPath(expected))
 
-  ensureProjectPaths = ({dirs, panelIsVisible}) ->
-    if not dirs? or not panelIsVisible?
-      throw new Error('Spec erro')
-
+  ensureProjectPaths = (dirs...) ->
     expect(getProjectPaths()).toEqual(dirs)
-    expect(view.panel.isVisible()).toBe(panelIsVisible)
 
   beforeEach ->
     addCustomMatchers(this)
@@ -125,20 +121,25 @@ describe "project-folder", ->
 
     it "add confirmed paths to projects 1st item", ->
       dispatchCommand(filterEditorElement, 'core:confirm')
-      ensureProjectPaths(dirs: [normalDir1], panelIsVisible: false)
+      ensureProjectPaths(normalDir1)
+      expect(view.panel.isVisible()).toBe(false)
+
 
     it "add confirmed paths to projects 2nd item", ->
       dispatchCommand(filterEditorElement, 'core:move-down')
       dispatchCommand(filterEditorElement, 'core:confirm')
-      ensureProjectPaths(dirs: [normalDir2], panelIsVisible: false)
+      ensureProjectPaths(normalDir2)
+      expect(view.panel.isVisible()).toBe(false)
 
     describe "confirmAndContinue", ->
       it "allow continuously add paths to projects", ->
-        ensureProjectPaths(dirs: [], panelIsVisible: true)
+        ensureProjectPaths()
+        expect(view.panel.isVisible()).toBe(true)
         dispatchCommand(filterEditorElement, 'project-folder:confirm-and-continue')
-        ensureProjectPaths(dirs: [normalDir1], panelIsVisible: true)
+        ensureProjectPaths(normalDir1)
         dispatchCommand(filterEditorElement, 'project-folder:confirm-and-continue')
-        ensureProjectPaths(dirs: [normalDir1, normalDir2], panelIsVisible: true)
+        ensureProjectPaths(normalDir1, normalDir2)
+        expect(view.panel.isVisible()).toBe(true)
 
   describe "hideLoadedFolderFromAddList", ->
     beforeEach ->
@@ -169,6 +170,7 @@ describe "project-folder", ->
     beforeEach ->
       addProject(normalDir1, normalDir2)
       expect(getProjectPaths()).toEqual([normalDir1, normalDir2])
+      ensureProjectPaths(normalDir1, normalDir2)
       dispatchCommand(workspaceElement, 'project-folder:remove')
       expect(view).toHaveClass('remove')
       items = view.list.find("li")
@@ -194,16 +196,16 @@ describe "project-folder", ->
 
   describe "view::add", ->
     it "add directory to project", ->
-      view.add(itemDirNormalDir1)
-      view.add(itemDirNormalDir2)
+      view.add(normalDir1)
+      view.add(normalDir2)
       expect(getProjectPaths()).toEqual([normalDir1, normalDir2])
 
   describe "view::remove", ->
     it "remove directory from project", ->
       addProject(normalDir1, normalDir2)
-      view.remove(itemDirNormalDir1)
+      view.remove(normalDir1)
       expect(getProjectPaths()).toEqual [normalDir2]
-      view.remove(itemDirNormalDir2)
+      view.remove(normalDir2)
       expect(getProjectPaths()).toEqual []
 
   describe "closeItemsForRemovedProject", ->
@@ -221,7 +223,7 @@ describe "project-folder", ->
         expect(files).toEqual([file1, file2])
 
     it "close editor for removed project", ->
-      view.remove(itemDirNormalDir2)
+      view.remove(normalDir2)
       files = atom.workspace.getTextEditors().map (e) -> e.getPath()
       expect(files).toEqual([file1])
 
@@ -360,24 +362,25 @@ describe "project-folder", ->
         ]
 
         # Confirm group 'normal'
-        ensureProjectPaths(dirs: [], panelIsVisible: true)
+        ensureProjectPaths()
+        expect(view.panel.isVisible()).toBe(true)
         dispatchCommand(filterEditorElement, 'core:confirm')
-        ensureProjectPaths(dirs: [normalDir1, normalDir2], panelIsVisible: false)
+        ensureProjectPaths(normalDir1, normalDir2)
 
         # Confirm group 'git'
         dispatchCommand(workspaceElement, 'project-folder:add')
         dispatchCommand(filterEditorElement, 'core:confirm')
-        ensureProjectPaths(dirs: [normalDir1, normalDir2, gitDir1, gitDir2], panelIsVisible: false)
+        ensureProjectPaths(normalDir1, normalDir2, gitDir1, gitDir2)
 
         # Remove group 'normal'
         dispatchCommand(workspaceElement, 'project-folder:remove')
         dispatchCommand(filterEditorElement, 'core:confirm')
-        ensureProjectPaths(dirs: [gitDir1, gitDir2], panelIsVisible: false)
+        ensureProjectPaths(gitDir1, gitDir2)
 
         # Remove group 'git'
         dispatchCommand(workspaceElement, 'project-folder:remove')
         dispatchCommand(filterEditorElement, 'core:confirm')
-        ensureProjectPaths(dirs: [], panelIsVisible: false)
+        ensureProjectPaths()
 
       it "by default(hideLoadedFolderFromAddList is true) hide from add list if all member is already loaded", ->
         dispatchCommand(workspaceElement, 'project-folder:add')
@@ -391,7 +394,7 @@ describe "project-folder", ->
           itemDirGitDir3
         ]
 
-        view.add(itemDirNormalDir1)
+        view.add(normalDir1)
         ensureSelectListItems [
           itemGroupNormal
           itemGroupGit
@@ -400,21 +403,21 @@ describe "project-folder", ->
           itemDirGitDir3
         ]
 
-        view.add(itemDirNormalDir2)
+        view.add(normalDir2)
         ensureSelectListItems [
           itemGroupGit
           itemDirGitDir1, itemDirGitDir2
           itemDirGitDir3
         ]
 
-        view.add(itemDirGitDir1)
+        view.add(gitDir1)
         ensureSelectListItems [
           itemGroupGit
           itemDirGitDir2
           itemDirGitDir3
         ]
 
-        view.add(itemDirGitDir2)
+        view.add(gitDir2)
         ensureSelectListItems [
           itemDirGitDir3
         ]
@@ -431,8 +434,8 @@ describe "project-folder", ->
           itemDirGitDir1, itemDirGitDir2
         ]
 
-        view.remove(itemDirNormalDir1)
-        view.remove(itemDirGitDir1)
+        view.remove(normalDir1)
+        view.remove(gitDir1)
         ensureSelectListItems [
           itemGroupNormal
           itemGroupGit
@@ -440,11 +443,11 @@ describe "project-folder", ->
           itemDirGitDir2
         ]
 
-        view.remove(itemDirGitDir2)
+        view.remove(gitDir2)
         ensureSelectListItems [
           itemGroupNormal
           itemDirNormalDir2
         ]
 
-        view.remove(itemDirNormalDir2)
+        view.remove(normalDir2)
         ensureSelectListItems []

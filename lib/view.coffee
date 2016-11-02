@@ -21,6 +21,15 @@ isContained = (items, target) ->
     return true
   false
 
+isInProjectList = (dir) ->
+  dir in atom.project.getPaths()
+
+someGroupMemberIsLoaded = ({dirs}) ->
+  dirs.some (dir) -> isInProjectList(dir)
+
+allGroupMemberIsLoaded = ({dirs}) ->
+  dirs.every (dir) -> isInProjectList(dir)
+
 # Copied & modified from fuzzy-finder's code.
 highlightMatches = (context, path, matches, offsetIndex=0) ->
   lastIndex = 0
@@ -82,22 +91,20 @@ class View extends SelectListView
 
   getItemsForGroups: ->
     @itemsForGroups ?= do =>
-      for name, dirs of @groups when _.isArray(dirs)
-        {name, dirs: dirs.map(normalize)}
+      ({name, dirs: dirs.map(normalize)} for name, dirs of @groups)
 
   getItems: ->
     switch @action
       when 'add'
         groups = @getItemsForGroups()
         dirs = _.uniq([@getNormalDirectories()..., @getGitDirectories()...])
-
         if settings.get('hideLoadedFolderFromAddList')
-          groups = _.reject(groups, @allGroupMemberIsLoaded.bind(this))
-          dirs = _.reject(dirs, @isInProjectList.bind(this))
+          groups = _.reject(groups, allGroupMemberIsLoaded)
+          dirs = _.reject(dirs, isInProjectList)
 
       when 'remove'
         # We show group if at least one dir was loaded from the group.
-        groups = @getItemsForGroups().filter(@someGroupMemberIsLoaded.bind(this))
+        groups = @getItemsForGroups().filter(someGroupMemberIsLoaded)
         dirs = atom.project.getPaths()
 
     home = fs.getHomeDirectory()
@@ -140,21 +147,10 @@ class View extends SelectListView
     @panel.show()
     @focusFilterEditor()
 
-  someGroupMemberIsLoaded: (groupItem) ->
-    groupItem.dirs.some (dir) =>
-      @isInProjectList(dir)
-
-  allGroupMemberIsLoaded: (groupItem) ->
-    groupItem.dirs.every (dir) =>
-      @isInProjectList(dir)
-
-  isInProjectList: (dir) ->
-    normalize(dir) in atom.project.getPaths()
-
   confirmAndContinue: ->
     selectedItem = @getSelectedItem()
     return unless selectedItem?
-    this[@action](selectedItem)
+    this[@action](selectedItem.dirs...)
 
     @items = @getItems()
     # Sync select-list to underlying model(@items)
@@ -166,7 +162,7 @@ class View extends SelectListView
         view.remove()
 
   confirmed: (item) ->
-    this[@action](item)
+    this[@action](item.dirs...)
     @cancel()
 
   cancelled: ->
@@ -186,34 +182,26 @@ class View extends SelectListView
 
   # Add
   # -------------------------
-  add: (item) ->
-    for dir in item.dirs
-      dir = normalize(dir)
+  add: (dirs...) ->
+    for dir in dirs
       if fs.isDirectorySync(dir)
         atom.project.addPath(dir)
 
   # Remove
   # -------------------------
-  remove: (item) ->
-    for dir in item.dirs
-      dir = normalize(dir)
+  remove: (dirs...) ->
+    for dir in dirs
       if settings.get('closeItemsForRemovedProject')
-        if directory = _.detect(atom.project.getDirectories(), (d) -> d.getPath() is dir)
-          # In case group is passed to remove, it might included non existing directory
-          # E.g gropus inluding three directory, but one directory is already unloaded.
-          editors = atom.workspace.getTextEditors()
-          for editor in editors when directory.contains(editor.getPath())
-            editor.destroy()
-
+        for editor in atom.workspace.getTextEditors() when editor.getPath()?.startsWith?(dir)
+          editor.destroy()
       atom.project.removePath(dir)
 
   # Replace
   # -------------------------
   replace: ->
     item = @getSelectedItem()
-    @add(item)
-    for dir in atom.project.getPaths() when dir not in item.dirs
-      @remove(name: 'fake', dirs: [dir])
+    @add(item.dirs...)
+    @remove(_.without(atom.project.getPaths(), item.dirs...)...)
     @cancel()
 
   # Open in new window
