@@ -31,6 +31,7 @@ In mini editor
 * `project-folder:switch-action`: Switch action 'add' / 'remove'. CSS style changes depending on action add(`blue`), remove(`red`), so that you can understand what you are doing.
 * `project-folder:confirm-and-continue`: Confirm action without closing select list, you can continue to add/remove next project folder.
 * `project-folder:open-in-new-window`: Open selected project in new window.
+* `project-folder:set-to-top-of-projects`: Set selected project to top of project list.
 
 # How to use
 
@@ -83,6 +84,7 @@ Following keymap is defined for project-folder's select-list mini editor.
   'tab': 'project-folder:switch-action'
   'space': 'project-folder:confirm-and-continue'
   'ctrl-enter': 'project-folder:open-in-new-window'
+  'ctrl-t': 'project-folder:set-to-top-of-projects'
 ```
 
 To start `project-folder:add` or `project-folder:remove`, invoke from command pallete, or set keymap by yourself.
