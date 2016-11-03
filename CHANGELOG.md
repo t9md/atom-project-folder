@@ -1,3 +1,6 @@
+## 1.1.1
+- Improve: Minor refactoring, no behavior change.
+
 ## 1.1.0
 - Improve: `confirm-and-continue` immediately sync select-list item to underlying model.
   - e.g. When all directory was removed from project-list, immediately remove corresponding group from select-list.
