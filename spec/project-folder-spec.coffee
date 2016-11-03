@@ -296,7 +296,7 @@ describe "project-folder", ->
         ]
 
         view.cancel()
-        expect(view.groups).toBe(null)
+        expect(view.getItemsForGroups()).toEqual([])
         userConfigEditor.setText """
           groups:
             atom: [
@@ -311,13 +311,18 @@ describe "project-folder", ->
           """
         userConfigEditor.save()
 
-        atomGroupDirs = ["~/github/atom.org", "~/github/text-buffer", "~/github/atom-keymap"]
-        helloGroupDirs = ["~/dir/hello-project", "~/dir/world-project"]
+        itemGroupAtom =
+          name: 'atom'
+          dirs: ["~/github/atom.org", "~/github/text-buffer", "~/github/atom-keymap"].map(normalize)
 
-        expect(view.groups).toEqual(atom: atomGroupDirs, hello: helloGroupDirs)
+        itemGroupHello =
+          name: 'hello'
+          dirs: ["~/dir/hello-project", "~/dir/world-project"].map(normalize)
 
-        itemGroupAtom = {name: 'atom', dirs: atomGroupDirs.map(normalize)}
-        itemGroupHello = {name: 'hello', dirs: helloGroupDirs.map(normalize)}
+        expect(view.getItemsForGroups()).toEqual [
+          itemGroupAtom
+          itemGroupHello
+        ]
 
         dispatchCommand(workspaceElement, 'project-folder:add')
         expect(view).toHaveClass('add')

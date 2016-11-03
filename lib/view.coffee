@@ -18,8 +18,7 @@ settings = require './settings'
 
 module.exports =
 class View extends SelectListView
-  groups: null
-  itemsForGroups: null
+  itemsForGroups: []
 
   initialize: ->
     super
@@ -44,11 +43,12 @@ class View extends SelectListView
     getGitDirectories(rootDirs, maxDepth)
 
   viewForItem: (item) ->
-    name = item.name
     if item.dirs.length > 1 # isGroup
+      name = item.name
       iconName = 'briefcase'
       basename = name
     else
+      name = item.name
       iconName = 'repo'
       basename = _path.basename(name)
 
@@ -64,12 +64,11 @@ class View extends SelectListView
   getFilterKey: ->
     'name'
 
-  setGroups: (@groups) ->
-    @itemsForGroups = null # invalidate cache
+  setGroups: (groups) ->
+    @itemsForGroups = ({name, dirs: dirs.map(normalize)} for name, dirs of groups)
 
   getItemsForGroups: ->
-    @itemsForGroups ?= do =>
-      ({name, dirs: dirs.map(normalize)} for name, dirs of @groups)
+    @itemsForGroups
 
   getItems: ->
     switch @action
