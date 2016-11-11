@@ -1,3 +1,6 @@
+## 1.1.2
+- Fix: `open-in-new-window` now ignore non-exist project.
+
 ## 1.1.1
 - Improve: Minor refactoring, no behavior change.
 
