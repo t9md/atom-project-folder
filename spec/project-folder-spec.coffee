@@ -264,7 +264,7 @@ describe "project-folder", ->
       spyOn(view, "getSelectedItem").andReturn(itemDirNormalDir1)
       spyOn(atom, "open")
       view.openInNewWindow()
-      expect(atom.open).toHaveBeenCalledWith({pathsToOpen: [normalDir1], newWindow: true})
+      expect(atom.open).toHaveBeenCalledWith(pathsToOpen: [normalDir1], newWindow: true, devMode: atom.inDevMode())
 
   describe "user defined project-group", ->
     userConfigEditor = null
