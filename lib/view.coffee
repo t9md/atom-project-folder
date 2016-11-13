@@ -164,7 +164,7 @@ class View extends SelectListView
     return unless item = @getSelectedItem()
 
     dirs = item.dirs.filter (dir) -> isDirectorySync(dir)
-    atom.open(pathsToOpen: dirs, newWindow: true)
+    atom.open(pathsToOpen: dirs, newWindow: true, devMode: atom.inDevMode())
     @cancel()
 
   setToTopOfProjects: ->

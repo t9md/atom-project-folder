@@ -1,3 +1,6 @@
+## 1.1.3
+- Fix: `open-in-new-window` respect if atom is in development mode.
+
 ## 1.1.2
 - Fix: `open-in-new-window` now ignore non-exist project.
 
