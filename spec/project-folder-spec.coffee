@@ -351,6 +351,10 @@ describe "project-folder", ->
 
       beforeEach ->
         setConfig('gitProjectDirectories', [gitRoot])
+
+        # By changing showGroupOnRemoveListCondition from default 'never' to
+        # 'some-member-was-loaded', we can test removal of group.
+        setConfig('showGroupOnRemoveListCondition', 'some-member-was-loaded')
         loadUserConfig()
 
       it "add/remove set of project defined in groups", ->
