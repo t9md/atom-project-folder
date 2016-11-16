@@ -34,6 +34,10 @@ module.exports = new Settings 'project-folder',
   hideLoadedFolderFromAddList:
     default: true
     description: 'Hide already added folders from list when adding.'
+  showGroupOnRemoveListCondition:
+    default: 'never'
+    enum: ['never', 'some-member-was-loaded', 'all-member-was-loaded']
+    description: 'Control if group item shows up on remove list'
   closeItemsForRemovedProject:
     default: false
     description: 'close editor when containing project was removed'

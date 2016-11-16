@@ -1,5 +1,5 @@
 _ = require 'underscore-plus'
-{normalize, isDirectorySync, listSync, traverseTreeSync} = require 'fs-plus'
+{normalize, getHomeDirectory, isDirectorySync, listSync, traverseTreeSync} = require 'fs-plus'
 _path = require 'path'
 
 # Utils
@@ -15,6 +15,10 @@ isContained = (items, target) ->
   for item in items when _.isEqual(item, target)
     return true
   false
+
+HomeDirectoryRegexp = ///^#{_.escapeRegExp(getHomeDirectory())}///
+tildifyHomeDirectory = (dir) ->
+  dir.replace(HomeDirectoryRegexp, '~')
 
 isInProjectList = (dir) ->
   dir in atom.project.getPaths()
@@ -70,4 +74,5 @@ module.exports = {
   highlightMatches
   getNormalDirectories
   getGitDirectories
+  tildifyHomeDirectory
 }

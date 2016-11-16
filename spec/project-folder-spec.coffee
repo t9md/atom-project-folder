@@ -427,35 +427,99 @@ describe "project-folder", ->
           itemDirGitDir3
         ]
 
-      it "show up on removal list as long as at least one member was loaded", ->
-        addProject(normalDir1, normalDir2, gitDir1, gitDir2)
-        dispatchCommand(workspaceElement, 'project-folder:remove')
-        expect(view).toHaveClass('remove')
+      describe "showGroupOnRemoveListCondition", ->
+        describe "never", ->
+          beforeEach ->
+            setConfig('showGroupOnRemoveListCondition', 'never')
 
-        ensureSelectListItems [
-          itemGroupNormal
-          itemGroupGit
-          itemDirNormalDir1, itemDirNormalDir2
-          itemDirGitDir1, itemDirGitDir2
-        ]
+          it "doesn't show group on removal list", ->
+            addProject(normalDir1, normalDir2, gitDir1, gitDir2)
+            dispatchCommand(workspaceElement, 'project-folder:remove')
+            expect(view).toHaveClass('remove')
 
-        view.remove(normalDir1)
-        view.remove(gitDir1)
-        ensureSelectListItems [
-          itemGroupNormal
-          itemGroupGit
-          itemDirNormalDir2
-          itemDirGitDir2
-        ]
+            ensureSelectListItems [
+              itemDirNormalDir1, itemDirNormalDir2
+              itemDirGitDir1, itemDirGitDir2
+            ]
 
-        view.remove(gitDir2)
-        ensureSelectListItems [
-          itemGroupNormal
-          itemDirNormalDir2
-        ]
+            view.remove(normalDir1)
+            view.remove(gitDir1)
+            ensureSelectListItems [
+              itemDirNormalDir2
+              itemDirGitDir2
+            ]
 
-        view.remove(normalDir2)
-        ensureSelectListItems []
+            view.remove(gitDir2)
+            ensureSelectListItems [
+              itemDirNormalDir2
+            ]
+            view.remove(normalDir2)
+            ensureSelectListItems []
+
+        describe "some-member-was-loaded", ->
+          beforeEach ->
+            setConfig('showGroupOnRemoveListCondition', 'some-member-was-loaded')
+          it "show up on removal list as long as at least one member was loaded", ->
+            addProject(normalDir1, normalDir2, gitDir1, gitDir2)
+            dispatchCommand(workspaceElement, 'project-folder:remove')
+            expect(view).toHaveClass('remove')
+
+            ensureSelectListItems [
+              itemGroupNormal
+              itemGroupGit
+              itemDirNormalDir1, itemDirNormalDir2
+              itemDirGitDir1, itemDirGitDir2
+            ]
+
+            view.remove(normalDir1)
+            view.remove(gitDir1)
+            ensureSelectListItems [
+              itemGroupNormal
+              itemGroupGit
+              itemDirNormalDir2
+              itemDirGitDir2
+            ]
+
+            view.remove(gitDir2)
+            ensureSelectListItems [
+              itemGroupNormal
+              itemDirNormalDir2
+            ]
+
+            view.remove(normalDir2)
+            ensureSelectListItems []
+
+        describe "all-member-was-loaded", ->
+          beforeEach ->
+            setConfig('showGroupOnRemoveListCondition', 'all-member-was-loaded')
+          it "show group if all member project of that group was loaded", ->
+            addProject(normalDir1, normalDir2, gitDir1, gitDir2)
+            dispatchCommand(workspaceElement, 'project-folder:remove')
+            expect(view).toHaveClass('remove')
+
+            ensureSelectListItems [
+              itemGroupNormal
+              itemGroupGit
+              itemDirNormalDir1, itemDirNormalDir2
+              itemDirGitDir1, itemDirGitDir2
+            ]
+
+            view.remove(normalDir1)
+            ensureSelectListItems [
+              itemGroupGit
+              itemDirNormalDir2
+              itemDirGitDir1, itemDirGitDir2
+            ]
+
+            view.remove(gitDir1)
+            ensureSelectListItems [
+              itemDirNormalDir2
+              itemDirGitDir2
+            ]
+
+            view.remove(normalDir2)
+            view.remove(gitDir2)
+            ensureSelectListItems []
 
   describe "project-folder:set-to-top-of-projects", ->
     originalProjects = [normalDir1, normalDir2, gitDir1, gitDir2, gitDir3]

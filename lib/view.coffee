@@ -1,7 +1,7 @@
 {SelectListView, $, $$} = require 'atom-space-pen-views'
 _ = require 'underscore-plus'
 CSON = require 'season'
-{normalize, getHomeDirectory, isDirectorySync, existsSync} = require 'fs-plus'
+{normalize, isDirectorySync, existsSync} = require 'fs-plus'
 _path = require 'path'
 {match} = require 'fuzzaldrin'
 
@@ -14,6 +14,7 @@ settings = require './settings'
   highlightMatches
   getNormalDirectories
   getGitDirectories
+  tildifyHomeDirectory
 } = require './utils'
 
 module.exports =
@@ -80,12 +81,16 @@ class View extends SelectListView
           dirs = _.reject(dirs, isInProjectList)
 
       when 'remove'
-        # We show group if at least one dir was loaded from the group.
-        groups = @getItemsForGroups().filter(someGroupMemberIsLoaded)
+        switch settings.get('showGroupOnRemoveListCondition')
+          when 'never'
+            groups = []
+          when 'some-member-was-loaded'
+            groups = @getItemsForGroups().filter(someGroupMemberIsLoaded)
+          when 'all-member-was-loaded'
+            groups = @getItemsForGroups().filter(allGroupMemberIsLoaded)
         dirs = atom.project.getPaths()
 
-    home = getHomeDirectory()
-    dirs = dirs.map (dir) -> {name: dir.replace(home, '~'), dirs: [dir]}
+    dirs = dirs.map (dir) -> {name: tildifyHomeDirectory(dir), dirs: [dir]}
     [groups..., dirs...]
 
   populateList: ->
