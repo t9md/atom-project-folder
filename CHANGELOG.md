@@ -1,3 +1,6 @@
+## 1.2.0
+- New: `showGroupOnRemoveListCondition` config to define when group item shows up on removal list #7.
+
 ## 1.1.3
 - Fix: `open-in-new-window` respect if atom is in development mode.
 
