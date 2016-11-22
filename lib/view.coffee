@@ -80,7 +80,7 @@ class View extends SelectListView
           groups = _.reject(groups, allGroupMemberIsLoaded)
           dirs = _.reject(dirs, isInProjectList)
 
-      when 'remove'
+      when 'remove', 'removeEverythingButOne'
         switch settings.get('showGroupOnRemoveListCondition')
           when 'never'
             groups = []
@@ -95,7 +95,7 @@ class View extends SelectListView
 
   populateList: ->
     super
-    @removeClass('add remove')
+    @removeClass('add remove removeEverythingButOne')
     @addClass(@action)
 
   # @action should be 'add' or 'remove'
@@ -153,6 +153,20 @@ class View extends SelectListView
         editors = atom.workspace.getTextEditors()
         for editor in editors when editor.getPath()?.startsWith?(dir)
           editor.destroy()
+
+  # Remove Everything But One
+  # -------------------------
+  removeEverythingButOne: (dirs...) ->
+    allDirs = atom.project.getPaths()
+
+    for dir in allDirs
+      if dirs.some((d) -> d != dir)
+        atom.project.removePath(dir)
+
+        if settings.get('closeItemsForRemovedProject')
+          editors = atom.workspace.getTextEditors()
+          for editor in editors when editor.getPath()?.startsWith?(dir)
+            editor.destroy()
 
   # Replace
   # -------------------------

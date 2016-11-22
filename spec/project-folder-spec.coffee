@@ -194,6 +194,27 @@ describe "project-folder", ->
         dispatchCommand(filterEditorElement, 'project-folder:confirm-and-continue')
         expect(getProjectPaths()).toEqual([])
 
+  describe "project-folder:remove-everything-but-one", ->
+    beforeEach ->
+      addProject(normalDir1, normalDir2)
+      expect(getProjectPaths()).toEqual([normalDir1, normalDir2])
+      ensureProjectPaths(normalDir1, normalDir2)
+      dispatchCommand(workspaceElement, 'project-folder:remove-everything-but-one')
+      expect(view).toHaveClass('removeEverythingButOne')
+      items = view.list.find("li")
+      expect(items).toHaveLength 2
+      expect(items.eq(0)).toBeEqualItem('normal/dir-1')
+      expect(items.eq(1)).toBeEqualItem('normal/dir-2')
+
+    it "ensure confirmed paths from projects 1st", ->
+      dispatchCommand(filterEditorElement, 'core:confirm')
+      expect(getProjectPaths()).toEqual([normalDir1])
+
+    it "add confirmed paths to projects 2nd", ->
+      dispatchCommand(filterEditorElement, 'core:move-down')
+      dispatchCommand(filterEditorElement, 'core:confirm')
+      expect(getProjectPaths()).toEqual([normalDir2])
+
   describe "view::add", ->
     it "add directory to project", ->
       view.add(normalDir1)
