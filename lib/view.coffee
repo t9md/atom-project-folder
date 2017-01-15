@@ -150,8 +150,8 @@ class View extends SelectListView
       atom.project.removePath(dir)
 
       if settings.get('closeItemsForRemovedProject')
-        editors = atom.workspace.getTextEditors()
-        for editor in editors when editor.getPath()?.startsWith?(dir)
+        dirPrefix = dir + _path.sep
+        for editor in atom.workspace.getTextEditors() when editor.getPath()?.startsWith?(dirPrefix)
           editor.destroy()
 
   # Replace
