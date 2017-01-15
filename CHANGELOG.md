@@ -1,3 +1,9 @@
+## 1.2.1
+- Fix: When removing project directory, editor belonging in different project incorrectly destroyed when it's shared path prefix with removed project.
+  - Bug condition: When removing project directory and `closeItemsForRemovedProject` is set to `true`.
+  - Bug example: Removing project `vim-mode-plus` also removed file belongs to `vim-mode-plus-move-selected-text` project.
+  - Now behavior: Files in `vim-mode-plus-move-selected-text` no longer destroyed in above example.
+
 ## 1.2.0
 - New: `showGroupOnRemoveListCondition` config to define when group item shows up on removal list #7.
 
