@@ -1,9 +1,9 @@
 _path = require 'path'
 
 fs = require 'fs-plus'
+fsx = require 'fs-extra'
 {normalize} = fs
 temp = require 'temp'
-wrench = require 'wrench'
 
 # Utility functions
 # -------------------------
@@ -52,7 +52,7 @@ describe "project-folder", ->
   # Git
   gitRoot = fs.realpathSync(temp.mkdirSync('git'))
   gitRootSource = getPath('git')
-  wrench.copyDirSyncRecursive(gitRootSource, gitRoot, forceDelete: true)
+  fsx.copySync(gitRootSource, gitRoot)
 
   gitDir1 = joinPath(gitRoot, 'dir-1')
   gitDir2 = joinPath(gitRoot, 'dir-2')
