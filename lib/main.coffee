@@ -1,4 +1,4 @@
-fs = require 'fs-plus'
+existsSync = null
 {CompositeDisposable} = require 'atom'
 settings = require './settings'
 
@@ -33,9 +33,10 @@ module.exports =
 
   openConfig: ->
     filePath = @view.getConfigPath()
+    existsSync ?= require('fs').existsSync
 
     atom.workspace.open(filePath, searchAllPanes: true).then (editor) =>
-      unless fs.existsSync(filePath)
+      unless existsSync(filePath)
         editor.setText(configTemplate)
         editor.save()
 
