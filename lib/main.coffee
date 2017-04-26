@@ -28,7 +28,6 @@ module.exports =
 
   deactivate: ->
     @subscriptions.dispose()
-    @view?.destroy?()
     {@subscriptions, @view} = {}
 
   openConfig: ->
