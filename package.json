@@ -8,7 +8,8 @@
     "atom-workspace": [
       "project-folder:add",
       "project-folder:remove",
-      "project-folder:open-config"
+      "project-folder:open-config",
+      "project-folder:remove-everything-but-one"
     ]
   },
   "repository": "https://github.com/t9md/atom-project-folder",

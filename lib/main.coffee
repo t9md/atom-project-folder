@@ -24,6 +24,7 @@ module.exports =
     @subscriptions.add atom.commands.add 'atom-workspace',
       'project-folder:add': => @view.start('add')
       'project-folder:remove': => @view.start('remove')
+      'project-folder:remove-everything-but-one': => @view.start('removeEverythingButOne')
       'project-folder:open-config': => @openConfig()
 
   deactivate: ->

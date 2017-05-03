@@ -24,6 +24,7 @@ This package enables you to quickly do above actions and provide extra commands 
 
 * `project-folder:add`: Add project folder.
 * `project-folder:remove`: Remove project folder.
+* `project-folder:remove-everything-but-one`: Remove all project folder, but one.
 * `project-folder:open-config`: Open user-config to define project-group as CSON format.
 
 In mini editor
