@@ -1,3 +1,9 @@
+## 1.3.0
+- Improve: #9, #10 No longer throw exception on `confirm-and-continue` by `space`.
+  - Conditions are depending on Atom version.
+  - In atom v1.16.0: When `file-icons` package installed and atom started empty project-list and `add` very first project-folder by `space`.
+  - In atom v1.17.0-beta3: When `remove` very last project-folder by `space`.
+
 ## 1.2.1
 - Fix: When removing project directory, editor belonging in different project incorrectly destroyed when it's shared path prefix with removed project.
   - Bug condition: When removing project directory and `closeItemsForRemovedProject` is set to `true`.
