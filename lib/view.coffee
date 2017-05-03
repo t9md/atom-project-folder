@@ -105,9 +105,27 @@ class View extends SelectListView
     @panel.show()
     @focusFilterEditor()
 
+  # HACK: See #9, #10
+  # When confirmAndContinue, it add/remove project-folder while keeping focus on select-list.
+  # But adding very first project-folder or removing very last project-folder unwantedly taken-away
+  # focus from select-list, this function aggressively regain focus when it's focus was taken-away.
+  withKeepFocusOnSelectList: (fn) ->
+    # By setting @cancelling to true, `blur` event on @filterEditorView
+    # not cause slect-list canceled.
+    @cancelling = true
+
+    fn()
+
+    # When focus was taken-away as a result of project paths manipulation.
+    # regain focus to select-list's mini-editor.
+    @filterEditorView.focus() unless @filterEditorView.element.hasFocus()
+
+    @cancelling = false # Make it cancelable again
+
   confirmAndContinue: ->
     return unless selectedItem = @getSelectedItem()
-    this[@action](selectedItem.dirs...)
+
+    @withKeepFocusOnSelectList => this[@action](selectedItem.dirs...)
 
     @items = @getItems()
     # Sync select-list to underlying model(@items)
@@ -122,14 +140,25 @@ class View extends SelectListView
     this[@action](item.dirs...)
     @cancel()
 
+  hasItemInWorkspace: ->
+    # From Atom v1.17 tree-view is paneItem on dock so narrowing on center is necessary.
+    if atom.workspace.getCenter?
+      atom.workspace.getCenter().getPaneItems().length > 0
+    else
+      atom.workspace.getPaneItems().length > 0
+
   cancelled: ->
+    # When invoking `tree-view:toggle-focus` for somooth keyboard navigation.
+    # It fire `blur` event afterward on @filterEditorView and cancelled called again.
+    # This guard useless 2nd cancelled call.
+    return unless @panel.isVisible()
+
     @action = null
     @panel.hide()
 
-    if atom.workspace.getPaneItems().length
-      atom.workspace.getActivePane().activate()
-    else
-      # For smooth navigation.
+    # HACK When no focusable item was exists on workspace, focus tree-view for
+    # somooth keyboard navigation.
+    unless @hasItemInWorkspace()
       workspaceElement = atom.views.getView(atom.workspace)
       atom.commands.dispatch(workspaceElement, 'tree-view:toggle-focus')
 
