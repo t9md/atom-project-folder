@@ -123,6 +123,8 @@ class View extends SelectListView
     @cancel()
 
   cancelled: ->
+    console.log 'canceled'
+    console.trace()
     @action = null
     @panel.hide()
 
