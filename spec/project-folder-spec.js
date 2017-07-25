@@ -248,8 +248,8 @@ describe("project-folder", () => {
   })
 
   describe("closeItemsForRemovedProject", () => {
-    const file1 = getPath("normal/dir-1/dir-1.coffee")
-    const file2 = getPath("normal/dir-2/dir-2.coffee")
+    const file1 = getPath("normal/dir-1/dir-1.js")
+    const file2 = getPath("normal/dir-2/dir-2.js")
 
     beforeEach(async () => {
       setConfig("closeItemsForRemovedProject", true)
