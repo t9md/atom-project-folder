@@ -1,3 +1,9 @@
+## 1.4.0
+- Support: Bump engine to `^1.18.0`
+- Fix: When `closeItemsForRemovedProject` was enabled, user lost keyboard centric navigation when focused editor was destroyed. #12.
+  - AFAIR this issue is started from v1.18.0.
+  - Fixed by explicitly activate activate pane to regain focus.
+
 ## 1.3.0
 - Improve: #9, #10 No longer throw exception on `confirm-and-continue` by `space`.
   - Conditions are depending on Atom version.
