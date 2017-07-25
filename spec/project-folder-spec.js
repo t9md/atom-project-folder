@@ -27,15 +27,28 @@ const getPath = file => normalize(joinPath(`${__dirname}/fixtures`, file))
 
 const addProject = (...dirs) => dirs.map(dir => atom.project.addPath(dir))
 
-const openFile = filePath => waitsForPromise(() => atom.workspace.open(filePath))
-
 const joinPath = _path.join
 
 const dispatchCommand = (target, command) => atom.commands.dispatch(target, command)
 
 const getProjectPaths = () => atom.project.getPaths()
 
-const getEditor = () => atom.workspace.getActiveTextEditor()
+function unindent(strings, ...values) {
+  let result = ""
+  let i = 0
+  for (let rawString of strings.raw) {
+    result += rawString.replace(/\\{2}/g, "\\") + (values.length ? values.shift() : "")
+  }
+
+  const lines = result.split(/\n/)
+  lines.shift()
+  lines.pop()
+
+  const minIndent = lines.reduce((minIndent, line) => {
+    return !line.match(/\S/) ? minIndent : Math.min(line.match(/ */)[0].length, minIndent)
+  }, Infinity)
+  return lines.map(line => line.slice(minIndent)).join("\n")
+}
 
 global.beforeEach(function() {
   this.addMatchers({
@@ -93,12 +106,12 @@ describe("project-folder", () => {
   }
 
   function ensureProjectPaths(...dirs) {
-    expect(getProjectPaths()).toEqual(dirs)
+    expect(atom.project.getPaths()).toEqual(dirs)
   }
 
   beforeEach(async () => {
     setConfig("configPath", configPath)
-    const fixturesDir = getProjectPaths()[0]
+    const fixturesDir = atom.project.getPaths()[0]
     atom.project.removePath(fixturesDir)
 
     workspaceElement = atom.views.getView(atom.workspace)
@@ -132,7 +145,6 @@ describe("project-folder", () => {
       ensureProjectPaths(normalDir1)
       expect(view.panel.isVisible()).toBe(false)
     })
-
     it("add confirmed paths to projects 2nd item", () => {
       dispatchCommand(filterEditorElement, "core:move-down")
       dispatchCommand(filterEditorElement, "core:confirm")
@@ -140,7 +152,7 @@ describe("project-folder", () => {
       expect(view.panel.isVisible()).toBe(false)
     })
 
-    describe("confirmAndContinue", () =>
+    describe("confirmAndContinue", () => {
       it("allow continuously add paths to projects", () => {
         ensureProjectPaths()
         expect(view.panel.isVisible()).toBe(true)
@@ -149,7 +161,8 @@ describe("project-folder", () => {
         dispatchCommand(filterEditorElement, "project-folder:confirm-and-continue")
         ensureProjectPaths(normalDir1, normalDir2)
         expect(view.panel.isVisible()).toBe(true)
-      }))
+      })
+    })
   })
 
   describe("hideLoadedFolderFromAddList", () => {
@@ -172,19 +185,20 @@ describe("project-folder", () => {
       })
     })
 
-    describe("hideLoadedFolderFromAddList is false", () =>
+    describe("hideLoadedFolderFromAddList is false", () => {
       it("not hide already added paths from add list", () => {
         setConfig("hideLoadedFolderFromAddList", false)
         addProject(normalDir1, normalDir2)
         dispatchCommand(workspaceElement, "project-folder:add")
         expect(view.list.find("li")).toHaveLength(2)
-      }))
+      })
+    })
   })
 
   describe("project-folder:remove", () => {
     beforeEach(() => {
       addProject(normalDir1, normalDir2)
-      expect(getProjectPaths()).toEqual([normalDir1, normalDir2])
+      expect(atom.project.getPaths()).toEqual([normalDir1, normalDir2])
       ensureProjectPaths(normalDir1, normalDir2)
       dispatchCommand(workspaceElement, "project-folder:remove")
       expect(view).toHaveClass("remove")
@@ -196,54 +210,54 @@ describe("project-folder", () => {
 
     it("remove confirmed paths from projects 1st", () => {
       dispatchCommand(filterEditorElement, "core:confirm")
-      expect(getProjectPaths()).toEqual([normalDir2])
+      expect(atom.project.getPaths()).toEqual([normalDir2])
     })
 
     it("add confirmed paths to projects 2nd", () => {
       dispatchCommand(filterEditorElement, "core:move-down")
       dispatchCommand(filterEditorElement, "core:confirm")
-      expect(getProjectPaths()).toEqual([normalDir1])
+      expect(atom.project.getPaths()).toEqual([normalDir1])
     })
 
-    describe("confirmAndContinue", () =>
+    describe("confirmAndContinue", () => {
       it("allow continuously remove paths from projects", () => {
         dispatchCommand(filterEditorElement, "project-folder:confirm-and-continue")
-        expect(getProjectPaths()).toEqual([normalDir2])
+        expect(atom.project.getPaths()).toEqual([normalDir2])
         dispatchCommand(filterEditorElement, "project-folder:confirm-and-continue")
-        expect(getProjectPaths()).toEqual([])
-      }))
+        expect(atom.project.getPaths()).toEqual([])
+      })
+    })
   })
 
-  describe("view::add", () =>
+  describe("view::add", () => {
     it("add directory to project", () => {
       view.add(normalDir1)
       view.add(normalDir2)
-      expect(getProjectPaths()).toEqual([normalDir1, normalDir2])
-    }))
+      expect(atom.project.getPaths()).toEqual([normalDir1, normalDir2])
+    })
+  })
 
-  describe("view::remove", () =>
+  describe("view::remove", () => {
     it("remove directory from project", () => {
       addProject(normalDir1, normalDir2)
       view.remove(normalDir1)
-      expect(getProjectPaths()).toEqual([normalDir2])
+      expect(atom.project.getPaths()).toEqual([normalDir2])
       view.remove(normalDir2)
-      expect(getProjectPaths()).toEqual([])
-    }))
+      expect(atom.project.getPaths()).toEqual([])
+    })
+  })
 
   describe("closeItemsForRemovedProject", () => {
     const file1 = getPath("normal/dir-1/dir-1.coffee")
     const file2 = getPath("normal/dir-2/dir-2.coffee")
 
-    beforeEach(() => {
+    beforeEach(async () => {
       setConfig("closeItemsForRemovedProject", true)
       addProject(normalDir1, normalDir2)
-      openFile(file1)
-      openFile(file2)
-
-      runs(() => {
-        const files = atom.workspace.getTextEditors().map(e => e.getPath())
-        expect(files).toEqual([file1, file2])
-      })
+      await atom.workspace.open(file1)
+      await atom.workspace.open(file2)
+      const files = atom.workspace.getTextEditors().map(e => e.getPath())
+      expect(files).toEqual([file1, file2])
     })
 
     it("close editor for removed project", () => {
@@ -271,13 +285,14 @@ describe("project-folder", () => {
     })
   })
 
-  describe("view::replace", () =>
+  describe("view::replace", () => {
     it("remove all project except passed one", () => {
       addProject(normalDir1, normalDir2)
       spyOn(view, "getSelectedItem").andReturn(itemDirGitDir1)
       view.replace()
-      expect(getProjectPaths()).toEqual([gitDir1])
-    }))
+      expect(atom.project.getPaths()).toEqual([gitDir1])
+    })
+  })
 
   describe("view::getNormalDirectories", () => {
     it("get directories case-1", () => {
@@ -292,24 +307,29 @@ describe("project-folder", () => {
   })
 
   describe("view::getGitDirectories", () => {
-    describe("gitProjectDirectories config is empty(default)", () =>
-      it("return empty list", () => expect(view.getGitDirectories()).toEqual([])))
+    describe("gitProjectDirectories config is empty(default)", () => {
+      it("return empty list", () => {
+        expect(view.getGitDirectories()).toEqual([])
+      })
+    })
 
-    describe("gitProjectDirectories is set", () =>
+    describe("gitProjectDirectories is set", () => {
       it("return directories which contains .git", () => {
         setConfig("gitProjectDirectories", [gitRoot])
         expect(view.getGitDirectories()).toEqual([gitDir1, gitDir2, gitDir3])
-      }))
+      })
+    })
 
-    describe("gitProjectSearchMaxDepth is 2", () =>
+    describe("gitProjectSearchMaxDepth is 2", () => {
       it("search .git directory 2 depth at maximum", () => {
         setConfig("gitProjectDirectories", [gitRoot])
         setConfig("gitProjectSearchMaxDepth", 1)
         expect(view.getGitDirectories()).toEqual([gitDir1, gitDir2])
-      }))
+      })
+    })
   })
 
-  describe("view::openInNewWindow", () =>
+  describe("view::openInNewWindow", () => {
     it("open selected project in new window", () => {
       spyOn(view, "getSelectedItem").andReturn(itemDirNormalDir1)
       spyOn(atom, "open")
@@ -319,98 +339,84 @@ describe("project-folder", () => {
         newWindow: true,
         devMode: atom.inDevMode(),
       })
-    }))
+    })
+  })
 
   describe("user defined project-group", () => {
     let userConfigEditor = null
 
-    beforeEach(() => {
-      waitsForPromise(() => mainModule.openConfig())
-      runs(() => (userConfigEditor = getEditor()))
+    beforeEach(async () => {
+      userConfigEditor = await mainModule.openConfig()
     })
 
     describe("user config file", () => {
-      it("opens editor in configPath", () => expect(userConfigEditor.getPath()).toBe(configPath))
+      it("opens editor in configPath", () => {
+        expect(userConfigEditor.getPath()).toBe(configPath)
+      })
+      it("load config on save", async () => {
+        dispatchCommand(workspaceElement, "project-folder:add")
+        expect(view).toHaveClass("add")
 
-      it("load config on save", () => {
-        runs(() => {
-          dispatchCommand(workspaceElement, "project-folder:add")
-          expect(view).toHaveClass("add")
+        ensureSelectListItems([itemDirNormalDir1, itemDirNormalDir2])
 
-          ensureSelectListItems([itemDirNormalDir1, itemDirNormalDir2])
+        view.cancel()
+        expect(view.getItemsForGroups()).toEqual([])
+        userConfigEditor.setText(unindent`
+          groups:
+            atom: [
+              "~/github/atom.org"
+              "~/github/text-buffer"
+              "~/github/atom-keymap"
+            ]
+            hello: [
+              "~/dir/hello-project"
+              "~/dir/world-project"
+            ]
+        `)
 
-          view.cancel()
-          expect(view.getItemsForGroups()).toEqual([])
-          userConfigEditor.setText(`\
-groups:
-  atom: [
-    "~/github/atom.org"
-    "~/github/text-buffer"
-    "~/github/atom-keymap"
-  ]
-  hello: [
-    "~/dir/hello-project"
-    "~/dir/world-project"
-  ]\
-`)
-        })
+        await userConfigEditor.save()
 
-        waitsForPromise(() => Promise.resolve(userConfigEditor.save()))
+        const itemGroupAtom = {
+          name: "atom",
+          dirs: ["~/github/atom.org", "~/github/text-buffer", "~/github/atom-keymap"].map(
+            normalize
+          ),
+        }
 
-        runs(() => {
-          const itemGroupAtom = {
-            name: "atom",
-            dirs: ["~/github/atom.org", "~/github/text-buffer", "~/github/atom-keymap"].map(
-              normalize
-            ),
-          }
+        const itemGroupHello = {
+          name: "hello",
+          dirs: ["~/dir/hello-project", "~/dir/world-project"].map(normalize),
+        }
 
-          const itemGroupHello = {
-            name: "hello",
-            dirs: ["~/dir/hello-project", "~/dir/world-project"].map(normalize),
-          }
+        expect(view.getItemsForGroups()).toEqual([itemGroupAtom, itemGroupHello])
 
-          expect(view.getItemsForGroups()).toEqual([itemGroupAtom, itemGroupHello])
-
-          dispatchCommand(workspaceElement, "project-folder:add")
-          expect(view).toHaveClass("add")
-          ensureSelectListItems([
-            itemGroupAtom,
-            itemGroupHello,
-            itemDirNormalDir1,
-            itemDirNormalDir2,
-          ])
-        })
+        dispatchCommand(workspaceElement, "project-folder:add")
+        expect(view).toHaveClass("add")
+        ensureSelectListItems([itemGroupAtom, itemGroupHello, itemDirNormalDir1, itemDirNormalDir2])
       })
     })
 
     describe("add/remove groups of project", () => {
-      const loadUserConfig = () => {
-        userConfigEditor.setText(`\
-groups:
-  normal: [
-    "${normalDir1}"
-    "${normalDir2}"
-  ]
-  git: [
-    "${gitDir1}"
-    "${gitDir2}"
-  ]\
-`)
-        userConfigEditor.save()
-        return Promise.resolve(userConfigEditor.save())
-      }
-
-      beforeEach(() => {
+      beforeEach(async () => {
         setConfig("gitProjectDirectories", [gitRoot])
 
         // By changing showGroupOnRemoveListCondition from default 'never' to
         // 'some-member-was-loaded', we can test removal of group.
         setConfig("showGroupOnRemoveListCondition", "some-member-was-loaded")
 
-        return waitsForPromise(() =>
-          loadUserConfig().then(() => expect(view.getItemsForGroups()).toHaveLength(2))
-        )
+        userConfigEditor.setText(unindent`
+          groups:
+            normal: [
+              "${normalDir1}"
+              "${normalDir2}"
+            ]
+            git: [
+              "${gitDir1}"
+              "${gitDir2}"
+            ]
+        `)
+        await Promise.resolve(userConfigEditor.save())
+        expect(view.getItemsForGroups()).toHaveLength(2)
       })
 
       it("add/remove set of project defined in groups", () => {
@@ -484,7 +490,9 @@ groups:
 
       describe("showGroupOnRemoveListCondition", () => {
         describe("never", () => {
-          beforeEach(() => setConfig("showGroupOnRemoveListCondition", "never"))
+          beforeEach(() => {
+            setConfig("showGroupOnRemoveListCondition", "never")
+          })
 
           it("doesn't show group on removal list", () => {
             addProject(normalDir1, normalDir2, gitDir1, gitDir2)
@@ -576,24 +584,24 @@ groups:
   describe("project-folder:set-to-top-of-projects", () => {
     const originalProjects = [normalDir1, normalDir2, gitDir1, gitDir2, gitDir3]
     beforeEach(() => {
-      addProject(...Array.from(originalProjects || []))
-      expect(getProjectPaths()).toEqual(originalProjects)
+      addProject(...originalProjects)
+      expect(atom.project.getPaths()).toEqual(originalProjects)
     })
 
     it("move selected directory or directories(group) to top of project-list", () => {
       spyOn(view, "getSelectedItem").andReturn(itemDirGitDir1)
       view.setToTopOfProjects()
-      expect(getProjectPaths()).toEqual([gitDir1, normalDir1, normalDir2, gitDir2, gitDir3])
+      expect(atom.project.getPaths()).toEqual([gitDir1, normalDir1, normalDir2, gitDir2, gitDir3])
       jasmine.unspy(view, "getSelectedItem")
 
       spyOn(view, "getSelectedItem").andReturn(itemDirNormalDir2)
       view.setToTopOfProjects()
-      expect(getProjectPaths()).toEqual([normalDir2, gitDir1, normalDir1, gitDir2, gitDir3])
+      expect(atom.project.getPaths()).toEqual([normalDir2, gitDir1, normalDir1, gitDir2, gitDir3])
       jasmine.unspy(view, "getSelectedItem")
 
       spyOn(view, "getSelectedItem").andReturn(itemGroupGit)
       view.setToTopOfProjects()
-      expect(getProjectPaths()).toEqual([gitDir1, gitDir2, normalDir2, normalDir1, gitDir3])
+      expect(atom.project.getPaths()).toEqual([gitDir1, gitDir2, normalDir2, normalDir1, gitDir3])
     })
   })
 })
