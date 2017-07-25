@@ -25,6 +25,12 @@
   },
   "devDependencies": {
     "fs-extra": "^2.0.0",
+    "prettier": "^1.5.3",
     "temp": "^0.8.3"
+  },
+  "scripts": {
+    "test": "apm test",
+    "watch": "fswatch -0 spec lib | xargs -0 -n1 -I{} apm test",
+    "prettier": "prettier --write --no-semi --print-width=100 --no-bracket-spacing --trailing-comma=es5 'lib/**/*.js' 'spec/*.js'"
   }
 }
