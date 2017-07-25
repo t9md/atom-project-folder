@@ -1,3 +1,6 @@
+## 1.5.0 [WIP]
+- Maintenance: Convert all code(except test-spec) from CoffeeScript to JavaScript.
+
 ## 1.4.0
 - Support: Bump engine to `^1.18.0`
 - Fix: When `closeItemsForRemovedProject` was enabled, user lost keyboard centric navigation when focused editor was destroyed. #12.
