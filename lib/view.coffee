@@ -158,7 +158,9 @@ class View extends SelectListView
 
     # HACK When no focusable item was exists on workspace, focus tree-view for
     # somooth keyboard navigation.
-    unless @hasItemInWorkspace()
+    if atom.workspace.getCenter().getPaneItems().length
+      atom.workspace.getActivePane().activate()
+    else
       workspaceElement = atom.views.getView(atom.workspace)
       atom.commands.dispatch(workspaceElement, 'tree-view:toggle-focus')
 

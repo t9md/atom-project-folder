@@ -71,6 +71,13 @@ describe "project-folder", ->
   itemDirGitDir2 = {name: gitDir2, dirs: [gitDir2]}
   itemDirGitDir3 = {name: gitDir3, dirs: [gitDir3]}
 
+  ensureSelectListItems = (expectedItems) ->
+    items = []
+    for item in view.getItems()
+      item.name = normalize(item.name)
+      items.push(item)
+    expect(items).toEqual(expectedItems)
+
   addCustomMatchers = (spec) ->
     spec.addMatchers
       toBeEqualItem: (expected) ->
@@ -227,6 +234,26 @@ describe "project-folder", ->
       files = atom.workspace.getTextEditors().map (e) -> e.getPath()
       expect(files).toEqual([file1])
 
+    it "focus remaining editor when originally focused editor was destrouyed", ->
+      pane = atom.workspace.getActivePane()
+      editor1 = pane.itemForURI(file1)
+      editor2 = pane.itemForURI(file2)
+      pane.activateItem(editor1)
+      expect(editor1.element.hasFocus()).toBe(true)
+
+      dispatchCommand(workspaceElement, 'project-folder:remove')
+      ensureSelectListItems [
+        itemDirNormalDir1
+        itemDirNormalDir2
+      ]
+      dispatchCommand(filterEditorElement, 'core:confirm')
+      dispatchCommand(filterEditorElement, 'core:cancel')
+
+      files = atom.workspace.getTextEditors().map (e) -> e.getPath()
+      expect(files).toEqual([file2])
+      expect(editor1.isAlive()).toBe(false)
+      expect(editor2.element.hasFocus()).toBe(true)
+
   describe "view::replace", ->
     it "remove all project except passed one", ->
       addProject(normalDir1, normalDir2)
@@ -268,13 +295,6 @@ describe "project-folder", ->
 
   describe "user defined project-group", ->
     userConfigEditor = null
-
-    ensureSelectListItems = (expectedItems) ->
-      items = []
-      for item in view.getItems()
-        item.name = normalize(item.name)
-        items.push(item)
-      expect(items).toEqual(expectedItems)
 
     beforeEach ->
       waitsForPromise ->
