@@ -287,51 +287,55 @@ describe "project-folder", ->
         expect(userConfigEditor.getPath()).toBe(configPath)
 
       it "load config on save", ->
-        dispatchCommand(workspaceElement, 'project-folder:add')
-        expect(view).toHaveClass('add')
+        runs ->
+          dispatchCommand(workspaceElement, 'project-folder:add')
+          expect(view).toHaveClass('add')
 
-        ensureSelectListItems [
-          itemDirNormalDir1
-          itemDirNormalDir2
-        ]
+          ensureSelectListItems [
+            itemDirNormalDir1
+            itemDirNormalDir2
+          ]
 
-        view.cancel()
-        expect(view.getItemsForGroups()).toEqual([])
-        userConfigEditor.setText """
-          groups:
-            atom: [
-              "~/github/atom.org"
-              "~/github/text-buffer"
-              "~/github/atom-keymap"
-            ]
-            hello: [
-              "~/dir/hello-project"
-              "~/dir/world-project"
-            ]
-          """
-        userConfigEditor.save()
+          view.cancel()
+          expect(view.getItemsForGroups()).toEqual([])
+          userConfigEditor.setText """
+            groups:
+              atom: [
+                "~/github/atom.org"
+                "~/github/text-buffer"
+                "~/github/atom-keymap"
+              ]
+              hello: [
+                "~/dir/hello-project"
+                "~/dir/world-project"
+              ]
+            """
 
-        itemGroupAtom =
-          name: 'atom'
-          dirs: ["~/github/atom.org", "~/github/text-buffer", "~/github/atom-keymap"].map(normalize)
+        waitsForPromise ->
+          Promise.resolve(userConfigEditor.save())
 
-        itemGroupHello =
-          name: 'hello'
-          dirs: ["~/dir/hello-project", "~/dir/world-project"].map(normalize)
+        runs ->
+          itemGroupAtom =
+            name: 'atom'
+            dirs: ["~/github/atom.org", "~/github/text-buffer", "~/github/atom-keymap"].map(normalize)
 
-        expect(view.getItemsForGroups()).toEqual [
-          itemGroupAtom
-          itemGroupHello
-        ]
+          itemGroupHello =
+            name: 'hello'
+            dirs: ["~/dir/hello-project", "~/dir/world-project"].map(normalize)
 
-        dispatchCommand(workspaceElement, 'project-folder:add')
-        expect(view).toHaveClass('add')
-        ensureSelectListItems [
-          itemGroupAtom
-          itemGroupHello
-          itemDirNormalDir1
-          itemDirNormalDir2
-        ]
+          expect(view.getItemsForGroups()).toEqual [
+            itemGroupAtom
+            itemGroupHello
+          ]
+
+          dispatchCommand(workspaceElement, 'project-folder:add')
+          expect(view).toHaveClass('add')
+          ensureSelectListItems [
+            itemGroupAtom
+            itemGroupHello
+            itemDirNormalDir1
+            itemDirNormalDir2
+          ]
 
     describe "add/remove groups of project", ->
       loadUserConfig = ->
@@ -347,7 +351,7 @@ describe "project-folder", ->
             ]
           """
         userConfigEditor.save()
-        expect(view.groups).not.toBe(null)
+        Promise.resolve(userConfigEditor.save())
 
       beforeEach ->
         setConfig('gitProjectDirectories', [gitRoot])
@@ -355,7 +359,10 @@ describe "project-folder", ->
         # By changing showGroupOnRemoveListCondition from default 'never' to
         # 'some-member-was-loaded', we can test removal of group.
         setConfig('showGroupOnRemoveListCondition', 'some-member-was-loaded')
-        loadUserConfig()
+
+        waitsForPromise ->
+          loadUserConfig().then ->
+            expect(view.getItemsForGroups()).toHaveLength(2)
 
       it "add/remove set of project defined in groups", ->
         dispatchCommand(workspaceElement, 'project-folder:add')
