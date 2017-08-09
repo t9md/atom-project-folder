@@ -1,4 +1,4 @@
-## 1.5.0 [WIP]
+## 1.5.0
 - Maintenance: Convert all code(except test-spec) from CoffeeScript to JavaScript.
 
 ## 1.4.0
