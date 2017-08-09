@@ -2,15 +2,7 @@
 
 const _path = require("path")
 
-const {
-  it,
-  fit,
-  ffit,
-  fffit,
-  emitterEventPromise,
-  beforeEach,
-  afterEach,
-} = require("./async-spec-helpers")
+const {it, fit, ffit, fffit, emitterEventPromise, beforeEach, afterEach} = require("./async-spec-helpers")
 
 const fs = require("fs-plus")
 const fsx = require("fs-extra")
@@ -378,9 +370,7 @@ describe("project-folder", () => {
 
         const itemGroupAtom = {
           name: "atom",
-          dirs: ["~/github/atom.org", "~/github/text-buffer", "~/github/atom-keymap"].map(
-            normalize
-          ),
+          dirs: ["~/github/atom.org", "~/github/text-buffer", "~/github/atom-keymap"].map(normalize),
         }
 
         const itemGroupHello = {
@@ -499,12 +489,7 @@ describe("project-folder", () => {
             dispatchCommand(workspaceElement, "project-folder:remove")
             expect(view).toHaveClass("remove")
 
-            ensureSelectListItems([
-              itemDirNormalDir1,
-              itemDirNormalDir2,
-              itemDirGitDir1,
-              itemDirGitDir2,
-            ])
+            ensureSelectListItems([itemDirNormalDir1, itemDirNormalDir2, itemDirGitDir1, itemDirGitDir2])
 
             view.remove(normalDir1)
             view.remove(gitDir1)
@@ -535,12 +520,7 @@ describe("project-folder", () => {
 
             view.remove(normalDir1)
             view.remove(gitDir1)
-            ensureSelectListItems([
-              itemGroupNormal,
-              itemGroupGit,
-              itemDirNormalDir2,
-              itemDirGitDir2,
-            ])
+            ensureSelectListItems([itemGroupNormal, itemGroupGit, itemDirNormalDir2, itemDirGitDir2])
 
             view.remove(gitDir2)
             ensureSelectListItems([itemGroupNormal, itemDirNormalDir2])
