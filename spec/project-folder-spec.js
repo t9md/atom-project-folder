@@ -17,7 +17,11 @@ const getConfig = name => atom.config.get(`project-folder.${name}`)
 
 const getPath = file => normalize(joinPath(`${__dirname}/fixtures`, file))
 
-const addProject = (...dirs) => dirs.map(dir => atom.project.addPath(dir))
+const addProject = (...dirs) => {
+  dirs.forEach(dir => {
+    atom.project.addPath(dir)
+  })
+}
 
 const joinPath = _path.join
 
@@ -45,9 +49,9 @@ function unindent(strings, ...values) {
 global.beforeEach(function() {
   this.addMatchers({
     toBeEqualItem(expected) {
-      const line1 = this.actual.find("div").eq(0).text()
-      const line2 = this.actual.find("div").eq(1).text()
-      return line1 === _path.basename(expected) && normalize(line2) === getPath(expected)
+      const line1 = this.actual.find("div").eq(0)
+      const line2 = this.actual.find("div").eq(1)
+      return line1.text() === _path.basename(expected) && normalize(line2.text()) === getPath(expected)
     },
   })
 })
